@@ -12,6 +12,13 @@ os.environ.setdefault("HF_HUB_CACHE",          str(_MODELS_HUB))
 os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(_MODELS_HUB))
 os.environ.setdefault("TRANSFORMERS_CACHE",     str(_MODELS_HUB))
 
+# If the default model is already cached, disable all HF network traffic.
+# This prevents broken-pipe errors after sleep/wake and makes startup instant.
+_DEFAULT_MODEL_SLUG = "models--OpenMOSS-Team--MOSS-TTS-Local-Transformer"
+if (_MODELS_HUB / _DEFAULT_MODEL_SLUG).exists():
+    os.environ.setdefault("HF_HUB_OFFLINE",      "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 import asyncio
 import gc
 import importlib.util
@@ -71,7 +78,7 @@ MODEL_ID = os.environ.get(
     "MOSS_TTS_MODEL_ID",
     AVAILABLE_MODELS["moss-local-1.7b"]["id"]
 )
-INACTIVITY_TIMEOUT = int(os.environ.get("MOSS_TTS_INACTIVITY_TIMEOUT", "300"))  # seconds
+INACTIVITY_TIMEOUT = int(os.environ.get("MOSS_TTS_INACTIVITY_TIMEOUT", "0"))  # seconds; 0 = never auto-unload
 
 # ── device setup ────────────────────────────────────────────────────────────
 def get_device() -> torch.device:
@@ -136,19 +143,15 @@ def _load_model():
         if device.type != "cuda":
             torch.backends.cuda.enable_cudnn_sdp(False)
 
-        def _from_pretrained_resilient(cls, model_id, **kwargs):
-            """Try online first, fall back to local cache on any network error."""
-            try:
-                return cls.from_pretrained(model_id, **kwargs)
-            except Exception as e:
-                if any(k in str(type(e)) or k in str(e) for k in
-                       ("BrokenPipe", "ConnectionError", "Timeout", "OSError",
-                        "pipe", "network", "HTTPError", "socket")):
-                    log.warning(f"Network error loading {model_id}, retrying from cache: {e}")
-                    return cls.from_pretrained(model_id, local_files_only=True, **kwargs)
-                raise
+        def _load_pretrained(cls, model_id, **kwargs):
+            """Load model — HF_HUB_OFFLINE=1 is set at top of file when cached."""
+            hub_dir = MODELS_DIR / "hub"
+            slug = "models--" + model_id.replace("/", "--")
+            offline = (hub_dir / slug).exists()
+            log.info(f"{'Local cache' if offline else 'Downloading'}: {model_id}")
+            return cls.from_pretrained(model_id, **kwargs)
 
-        processor = _from_pretrained_resilient(
+        processor = _load_pretrained(
             AutoProcessor, MODEL_ID,
             trust_remote_code=True,
         )
@@ -166,7 +169,7 @@ def _load_model():
                 if major >= 8:
                     attn_impl = "flash_attention_2"
 
-        model = _from_pretrained_resilient(
+        model = _load_pretrained(
             AutoModel, MODEL_ID,
             trust_remote_code=True,
             attn_implementation=attn_impl,
@@ -221,7 +224,10 @@ def ensure_loaded():
 
 
 def _inactivity_watchdog():
-    """Unload model after INACTIVITY_TIMEOUT seconds of no use."""
+    """Unload model after INACTIVITY_TIMEOUT seconds of no use.  0 = never auto-unload."""
+    if INACTIVITY_TIMEOUT <= 0:
+        log.info("Inactivity watchdog disabled (timeout=0). Model will stay loaded until explicit unload.")
+        return
     while True:
         time.sleep(30)
         if not _state.is_loaded():
@@ -242,6 +248,7 @@ def _inactivity_watchdog():
 
 
 threading.Thread(target=_inactivity_watchdog, daemon=True).start()
+
 
 # ── FastAPI app ──────────────────────────────────────────────────────────────
 app = FastAPI(title="MOSSlanding Server")
@@ -317,9 +324,25 @@ def list_models():
 
 @app.post("/api/load")
 def trigger_load():
-    """Manually trigger model loading."""
     ensure_loaded()
     return {"ok": True}
+
+
+@app.post("/api/unload")
+def manual_unload():
+    with _state.lock:
+        if not _state.is_loaded():
+            return {"ok": True, "message": "Model was not loaded."}
+        _state.model = None
+        _state.processor = None
+        _state.status = "idle"
+        _state.progress = 0
+        _state.progress_msg = ""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    log.info("Model unloaded via /api/unload")
+    return {"ok": True, "message": "Model unloaded."}
 
 
 @app.post("/api/synthesize")
