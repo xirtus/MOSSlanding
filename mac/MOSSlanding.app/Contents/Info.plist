@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.mosslanding.app</string>
+    <key>CFBundleName</key>
+    <string>MOSSlanding</string>
+    <key>CFBundleDisplayName</key>
+    <string>MOSSlanding</string>
+    <key>CFBundleExecutable</key>
+    <string>MOSSlanding</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>MOSSlanding uses the microphone to record voice cloning samples.</string>
+    <key>NSAppleScriptEnabled</key>
+    <false/>
+</dict>
+</plist>

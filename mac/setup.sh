@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "================================================="
-echo "  MOSS TTS - macOS Setup (Apple Silicon / M1)"
+echo "  MOSSlanding - macOS Setup (Apple Silicon / M1)"
 echo "================================================="
 
 # Find Python 3.10+

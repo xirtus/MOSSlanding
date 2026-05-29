@@ -4,16 +4,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-APP="$SCRIPT_DIR/MossTTS.app"
+APP="$SCRIPT_DIR/MOSSlanding.app"
 VERSION="1.0"
-DMG_NAME="MossTTS-${VERSION}"
+DMG_NAME="MOSSlanding-${VERSION}"
 DMG_FINAL="$SCRIPT_DIR/dist/${DMG_NAME}.dmg"
 STAGING="/tmp/mossTTS_dmg_staging_$$"
 DMG_TMP="/tmp/${DMG_NAME}_rw.dmg"
 BG_PATH="/tmp/mossTTS_dmg_bg.png"
 
 echo "================================================="
-echo "  MOSS TTS — Distribution Package"
+echo "  MOSSlanding — Distribution Package"
 echo "================================================="
 
 mkdir -p "$SCRIPT_DIR/dist"
@@ -22,7 +22,9 @@ mkdir -p "$SCRIPT_DIR/dist"
 echo ""
 echo "Step 1/5 — Building app..."
 
-source "$SCRIPT_DIR/venv/bin/activate"
+VENV_DIR="$SCRIPT_DIR/venv"
+[ ! -d "$VENV_DIR" ] && VENV_DIR="$(dirname "$SCRIPT_DIR")/venv"
+source "$VENV_DIR/bin/activate"
 
 # Regenerate icon with Pillow
 python3 "$SCRIPT_DIR/scripts/make_icon.py" "$APP/Contents/Resources/AppIcon.iconset"
@@ -32,10 +34,10 @@ echo "  Icon: OK"
 # Recompile Swift binary
 swiftc \
     "$SCRIPT_DIR/swift/MossTTSApp.swift" \
-    -o "$APP/Contents/MacOS/MossTTS" \
+    -o "$APP/Contents/MacOS/MOSSlanding" \
     -framework AppKit -framework WebKit -framework Foundation \
     -O 2>&1 | grep -E "error:" || true
-chmod +x "$APP/Contents/MacOS/MossTTS"
+chmod +x "$APP/Contents/MacOS/MOSSlanding"
 
 # Sync resources
 cp -R "$SCRIPT_DIR/backend/" "$APP/Contents/Resources/backend/"
@@ -70,7 +72,7 @@ rm -f "$DMG_TMP" "$DMG_FINAL"
 
 hdiutil create \
     -srcfolder "$STAGING" \
-    -volname "MOSS TTS" \
+    -volname "MOSSlanding" \
     -fs HFS+ \
     -fsargs "-c c=64,a=16,b=16" \
     -format UDRW \
@@ -79,14 +81,14 @@ hdiutil create \
 
 # Mount it to default /Volumes/ location so Finder can see it
 MOUNT_OUTPUT="$(hdiutil attach "$DMG_TMP" -noautoopen -noverify 2>&1)"
-MOUNT_VOL="/Volumes/MOSS TTS"
+MOUNT_VOL="/Volumes/MOSSlanding"
 echo "  Mounted at $MOUNT_VOL"
 sleep 2
 
 # Style the window with AppleScript
 osascript << OSASCRIPT_EOF
 tell application "Finder"
-    set diskRef to disk "MOSS TTS"
+    set diskRef to disk "MOSSlanding"
     tell diskRef
         open
         set current view of container window to icon view
@@ -97,7 +99,7 @@ tell application "Finder"
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 128
         set background picture of theViewOptions to file ".background:bg.png"
-        set position of item "MossTTS.app" to {155, 225}
+        set position of item "MOSSlanding.app" to {155, 225}
         set position of item "Applications" to {445, 225}
         close
         open
@@ -112,7 +114,7 @@ OSASCRIPT_EOF
 sync
 sleep 1
 hdiutil detach "$MOUNT_VOL" -quiet 2>/dev/null || \
-    hdiutil detach "$(hdiutil info | grep -B5 'MOSS TTS' | grep '/dev/disk' | awk '{print $1}' | head -1)" -quiet 2>/dev/null || true
+    hdiutil detach "$(hdiutil info | grep -B5 'MOSSlanding' | grep '/dev/disk' | awk '{print $1}' | head -1)" -quiet 2>/dev/null || true
 
 # Convert to compressed read-only DMG
 hdiutil convert "$DMG_TMP" \

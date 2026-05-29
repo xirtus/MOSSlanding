@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a polished MOSS TTS app icon at every required macOS size."""
+"""Generate a polished MOSSlanding app icon at every required macOS size."""
 
 import math
 import os
@@ -142,7 +142,7 @@ def make_icon(size: int) -> Image.Image:
 
 
 def main():
-    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("MossTTS.app/Contents/Resources/AppIcon.iconset")
+    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("MOSSlanding.app/Contents/Resources/AppIcon.iconset")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for size in SIZES:
