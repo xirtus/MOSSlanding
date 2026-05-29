@@ -6,7 +6,7 @@
 
 <div align="center">
 
-**[⬇️ Download for macOS](https://github.com/xirtus/MOSSlanding/releases/latest)** &nbsp;·&nbsp; **[🐧 Linux](linux/)** &nbsp;·&nbsp; Free & Open Source
+**[⬇️ Download for macOS](https://github.com/xirtus/MOSSlanding/releases/latest)** &nbsp;·&nbsp; **[🐧 Linux](linux/)** &nbsp;·&nbsp; **[🪟 Windows](windows/)** &nbsp;·&nbsp; Free & Open Source
 
 </div>
 
@@ -24,7 +24,7 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 | **31 languages** | ✅ | ✅ | ⚠️ | ⚠️ |
 | **Your data stays private** | ✅ | ❌ | ❌ | ❌ |
 | **Native desktop app** | ✅ | — | — | — |
-| **Linux + NVIDIA support** | ✅ | — | — | — |
+| **Windows + Linux + NVIDIA support** | ✅ | — | — | — |
 
 ---
 
@@ -40,7 +40,7 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 
 **⚡ Apple Silicon MPS** — Runs the full 1.7B model on M1/M2/M3 via Metal. No GPU required. No CUDA. Just your Mac.
 
-**🐧 Linux + NVIDIA** — Native PySide6 desktop app with KDE/GNOME theme integration. RTX 2070+ with bfloat16 precision.
+**🪟🐧 Windows + Linux + NVIDIA** — Native PySide6 desktop app with Windows dark/light mode and KDE/GNOME theme integration. RTX 2070+ with bfloat16 precision.
 
 **🔒 100% private** — The model runs on your machine. Your voice samples never leave your device.
 
@@ -52,6 +52,7 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 |---|---|---|
 | macOS (Apple Silicon) | [`mac/`](mac/) | **[MossTTS-1.0.dmg](https://github.com/xirtus/MOSSlanding/releases/latest)** |
 | Linux (NVIDIA GPU) | [`linux/`](linux/) | **[Install Guide](linux/#quick-start)** |
+| Windows (NVIDIA GPU) | [`windows/`](windows/) | **[Install Guide](windows/#quick-start)** |
 
 ---
 
@@ -98,9 +99,25 @@ See [`linux/README.md`](linux/README.md) for manual install and AppImage build i
 
 ---
 
+## Windows — Install in 60 seconds
+
+```powershell
+git clone https://github.com/xirtus/MOSSlanding
+cd MOSSlanding\windows
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+Then double-click `run.bat` or search "Mosslanding" in the Start Menu.
+
+**Requirements:** Windows 10/11, NVIDIA GPU 8GB+ VRAM (RTX 2070+), Python 3.10+
+
+See [`windows/README.md`](windows/README.md) for manual install and troubleshooting.
+
+---
+
 ## Built on MOSS-TTS
 
-This app is a native macOS/Linux launcher for the [MOSS-TTS family](https://github.com/OpenMOSS/MOSS-TTS) by OpenMOSS — a state-of-the-art open-source TTS system that outperforms closed-source models like Doubao and Gemini 2.5 Pro in subjective evaluations.
+This app is a native macOS / Linux / Windows launcher for the [MOSS-TTS family](https://github.com/OpenMOSS/MOSS-TTS) by OpenMOSS — a state-of-the-art open-source TTS system that outperforms closed-source models like Doubao and Gemini 2.5 Pro in subjective evaluations.
 
 ---
 
