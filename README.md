@@ -55,7 +55,7 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 
 ---
 
-## macOS — Install in 60 seconds
+## macOS — Install in 60 seconds -- or use DMG
 
 ```bash
 # 1. Download + drag MossTTS.app to /Applications
