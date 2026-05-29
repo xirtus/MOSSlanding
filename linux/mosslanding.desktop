@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Mosslanding
+GenericName=MOSS-TTS Voice Synthesis
+Comment=AI-powered text-to-speech with voice cloning and voice design
+Icon=mosslanding
+Exec=mosslanding %U
+Terminal=false
+Categories=Audio;Multimedia;ArtificialIntelligence;
+Keywords=TTS;voice;cloning;speech;synthesis;AI;MOSS;
+StartupWMClass=mosslanding
+StartupNotify=true

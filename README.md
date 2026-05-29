@@ -6,7 +6,7 @@
 
 <div align="center">
 
-**[⬇️ Download for macOS](https://github.com/xirtus/MOSSlanding/releases/latest)** &nbsp;·&nbsp; Linux coming soon
+**[⬇️ Download for macOS](https://github.com/xirtus/MOSSlanding/releases/latest)** &nbsp;·&nbsp; **[🐧 Linux](linux/)** &nbsp;·&nbsp; Free & Open Source
 
 </div>
 
@@ -23,7 +23,8 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 | **Free forever** | ✅ | ❌ | ❌ | ❌ |
 | **31 languages** | ✅ | ✅ | ⚠️ | ⚠️ |
 | **Your data stays private** | ✅ | ❌ | ❌ | ❌ |
-| **Apple Silicon native** | ✅ | — | — | — |
+| **Native desktop app** | ✅ | — | — | — |
+| **Linux + NVIDIA support** | ✅ | — | — | — |
 
 ---
 
@@ -39,6 +40,8 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 
 **⚡ Apple Silicon MPS** — Runs the full 1.7B model on M1/M2/M3 via Metal. No GPU required. No CUDA. Just your Mac.
 
+**🐧 Linux + NVIDIA** — Native PySide6 desktop app with KDE/GNOME theme integration. RTX 2070+ with bfloat16 precision.
+
 **🔒 100% private** — The model runs on your machine. Your voice samples never leave your device.
 
 ---
@@ -48,7 +51,7 @@ Most "AI voice" tools make you pay $30/month, upload your audio to their servers
 | Platform | Folder | Download |
 |---|---|---|
 | macOS (Apple Silicon) | [`mac/`](mac/) | **[MossTTS-1.0.dmg](https://github.com/xirtus/MOSSlanding/releases/latest)** |
-| Linux (NVIDIA / XPS 17) | [`linux/`](linux/) | 🔜 Coming soon |
+| Linux (NVIDIA GPU) | [`linux/`](linux/) | **[Install Guide](linux/#quick-start)** |
 
 ---
 
@@ -72,6 +75,26 @@ open MossTTS.app
 ```
 
 **Requirements:** macOS 13+, Apple Silicon, 16 GB RAM, Python 3.10+
+
+---
+
+## Linux — Install in 60 seconds
+
+```bash
+git clone https://github.com/xirtus/MOSSlanding
+cd MOSSlanding/linux
+./install.sh
+```
+
+Then launch from your app menu (search "Mosslanding") or terminal:
+
+```bash
+mosslanding
+```
+
+**Requirements:** Linux (KDE/GNOME/Qt), NVIDIA GPU 8GB+ VRAM (RTX 2070+), Python 3.10+
+
+See [`linux/README.md`](linux/README.md) for manual install and AppImage build instructions.
 
 ---
 
