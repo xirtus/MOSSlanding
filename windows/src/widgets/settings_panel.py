@@ -1,18 +1,21 @@
-"""Settings panel — model management, GPU info, configuration."""
+"""Settings panel — model management, GPU info, model downloader."""
 
 from PySide6.QtCore import Qt, Signal, QThread
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QGroupBox, QProgressBar,
-    QMessageBox, QFrame, QComboBox,
+    QMessageBox, QFrame, QComboBox, QLineEdit,
 )
 import torch
 
-from src.backend import MossTTSBackend, MODEL_TTS, MODEL_VOICE_GEN, gpu_info
+from src.backend import (
+    MossTTSBackend, MODEL_TTS, MODEL_VOICE_GEN,
+    gpu_info, MODELS_DIR, APP_DIR, get_model_size_gb,
+)
 
 
 class ModelLoadWorker(QThread):
-    """Load model in background."""
+    """Load model in background thread."""
     finished = Signal(bool)
     progress = Signal(str)
     error = Signal(str)
@@ -32,6 +35,31 @@ class ModelLoadWorker(QThread):
             self.finished.emit(False)
 
 
+class ModelDownloadWorker(QThread):
+    """Download model from HuggingFace in background thread."""
+    finished = Signal(bool)
+    progress = Signal(str)
+    error = Signal(str)
+
+    def __init__(self, backend, model_name: str):
+        super().__init__()
+        self.backend = backend
+        self.model_name = model_name
+
+    def run(self):
+        try:
+            self.backend.set_progress_callback(lambda msg: self.progress.emit(msg))
+            ok = self.backend.download_model(self.model_name)
+            if ok:
+                self.finished.emit(True)
+            else:
+                self.error.emit("Download failed — check model name and connection.")
+                self.finished.emit(False)
+        except Exception as e:
+            self.error.emit(str(e))
+            self.finished.emit(False)
+
+
 class SettingsPanel(QWidget):
     """Settings & model management."""
 
@@ -42,6 +70,7 @@ class SettingsPanel(QWidget):
         self._backend = backend
         self._dark = dark_mode
         self._worker: ModelLoadWorker | None = None
+        self._dl_worker: ModelDownloadWorker | None = None
 
         self._setup_ui()
         self._refresh_gpu_info()
@@ -51,7 +80,43 @@ class SettingsPanel(QWidget):
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(12)
 
-        # ── Model Management ────────────────────────────
+        # ── Model Hub (download any HF model) ─────────────
+        hub_group = QGroupBox("Model Hub — Download from HuggingFace")
+        hub_layout = QVBoxLayout(hub_group)
+        hub_layout.setSpacing(6)
+
+        hint = QLabel("Paste any HuggingFace model ID (e.g. OpenMOSS-Team/MOSS-TTS-v1.5)")
+        hint.setStyleSheet("color: rgba(128,128,128,0.7); font-size: 11px;")
+        hub_layout.addWidget(hint)
+
+        url_row = QHBoxLayout()
+        self._hf_input = QLineEdit()
+        self._hf_input.setPlaceholderText("OpenMOSS-Team/MOSS-TTS-v1.5")
+        self._hf_input.setClearButtonEnabled(True)
+        url_row.addWidget(self._hf_input, stretch=1)
+
+        self._dl_btn = QPushButton("Download Model")
+        self._dl_btn.setObjectName("accentBtn")
+        self._dl_btn.clicked.connect(self._download_model)
+        url_row.addWidget(self._dl_btn)
+        hub_layout.addLayout(url_row)
+
+        # Download progress
+        self._dl_progress = QProgressBar()
+        self._dl_progress.setRange(0, 0)
+        self._dl_progress.setVisible(False)
+        self._dl_progress.setFixedHeight(4)
+        self._dl_progress.setTextVisible(False)
+        hub_layout.addWidget(self._dl_progress)
+
+        self._dl_status = QLabel(f"Models stored in: {MODELS_DIR}")
+        self._dl_status.setStyleSheet("color: rgba(128,128,128,0.6); font-size: 11px;")
+        self._dl_status.setWordWrap(True)
+        hub_layout.addWidget(self._dl_status)
+
+        layout.addWidget(hub_group)
+
+        # ── Model Management ───────────────────────────────
         model_group = QGroupBox("Model Management")
         model_layout = QVBoxLayout(model_group)
         model_layout.setSpacing(8)
@@ -60,12 +125,13 @@ class SettingsPanel(QWidget):
         sel_row = QHBoxLayout()
         sel_row.addWidget(QLabel("Active Model"))
         self._model_combo = QComboBox()
+        self._model_combo.setEditable(True)
         self._model_combo.addItem("MOSS-TTS v1.5 (Voice Cloning)", MODEL_TTS)
         self._model_combo.addItem("MOSS-VoiceGenerator (Voice Design)", MODEL_VOICE_GEN)
         sel_row.addWidget(self._model_combo, stretch=1)
         model_layout.addLayout(sel_row)
 
-        # Load/Unload buttons
+        # Load / Unload buttons
         btn_row = QHBoxLayout()
         self._load_btn = QPushButton("Load Model")
         self._load_btn.setObjectName("accentBtn")
@@ -95,7 +161,7 @@ class SettingsPanel(QWidget):
 
         layout.addWidget(model_group)
 
-        # ── GPU Info ─────────────────────────────────────
+        # ── GPU Info ────────────────────────────────────────
         gpu_group = QGroupBox("GPU Information")
         gpu_layout = QVBoxLayout(gpu_group)
         gpu_layout.setSpacing(4)
@@ -122,7 +188,7 @@ class SettingsPanel(QWidget):
 
         layout.addWidget(gpu_group)
 
-        # ── VRAM Usage ───────────────────────────────────
+        # ── VRAM Usage ──────────────────────────────────────
         vram_group = QGroupBox("VRAM Monitor")
         vram_layout = QVBoxLayout(vram_group)
         self._vram_bar = QProgressBar()
@@ -139,7 +205,7 @@ class SettingsPanel(QWidget):
 
         layout.addWidget(vram_group)
 
-        # ── Optimization ─────────────────────────────────
+        # ── Optimization ────────────────────────────────────
         opt_group = QGroupBox("Optimization")
         opt_layout = QVBoxLayout(opt_group)
 
@@ -163,6 +229,8 @@ class SettingsPanel(QWidget):
 
         self._update_model_status()
 
+    # ── GPU Info ────────────────────────────────────────────
+
     def _refresh_gpu_info(self):
         info = gpu_info()
         if info["cuda"]:
@@ -173,7 +241,6 @@ class SettingsPanel(QWidget):
             self._gpu_labels["compute"].setText(info["compute_capability"])
             self._gpu_labels["cuda"].setText(info.get("cuda_version", "—"))
 
-            # Also update VRAM bar
             if torch.cuda.is_available():
                 used = torch.cuda.memory_allocated() / (1024**3)
                 total = info["vram_total_gb"]
@@ -184,14 +251,69 @@ class SettingsPanel(QWidget):
             for label in self._gpu_labels.values():
                 label.setText("No GPU detected")
 
+    # ── Model Download ──────────────────────────────────────
+
+    def _download_model(self):
+        model_name = self._hf_input.text().strip()
+        if not model_name:
+            QMessageBox.warning(self, "Missing Model ID",
+                                "Enter a HuggingFace model ID (e.g. OpenMOSS-Team/MOSS-TTS-v1.5)")
+            return
+
+        self._dl_btn.setEnabled(False)
+        self._dl_progress.setVisible(True)
+        self._dl_status.setText(f"Downloading {model_name} …")
+
+        self._dl_worker = ModelDownloadWorker(self._backend, model_name)
+        self._dl_worker.progress.connect(lambda msg: self._dl_status.setText(msg))
+        self._dl_worker.finished.connect(self._on_download_done)
+        self._dl_worker.error.connect(self._on_download_error)
+        self._dl_worker.start()
+
+    def _on_download_done(self, success: bool):
+        self._dl_btn.setEnabled(True)
+        self._dl_progress.setVisible(False)
+        if success:
+            model_name = self._hf_input.text().strip()
+            self._dl_status.setText(f"✓ Downloaded: {model_name}")
+
+            # Add to combo if not already present
+            found = False
+            for i in range(self._model_combo.count()):
+                if self._model_combo.itemData(i) == model_name:
+                    found = True
+                    break
+            if not found:
+                self._model_combo.addItem(model_name, model_name)
+                self._model_combo.setCurrentIndex(self._model_combo.count() - 1)
+
+            # Offer to load
+            reply = QMessageBox.question(
+                self, "Download Complete",
+                f"{model_name} downloaded to:\n{MODELS_DIR}\n\nLoad it now?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes,
+            )
+            if reply == QMessageBox.Yes:
+                self._load_model()
+        else:
+            self._dl_status.setText("Download failed — check model name and connection.")
+
+    def _on_download_error(self, error: str):
+        self._dl_btn.setEnabled(True)
+        self._dl_progress.setVisible(False)
+        self._dl_status.setText(f"Error: {error}")
+        QMessageBox.critical(self, "Download Error", error)
+
+    # ── Model Load / Unload ─────────────────────────────────
+
     def _load_model(self):
-        model_name = self._model_combo.currentData()
+        model_name = self._model_combo.currentData() or self._model_combo.currentText().strip()
         if not model_name:
             return
 
         self._load_btn.setEnabled(False)
         self._load_progress.setVisible(True)
-        self._model_status.setText(f"Loading {model_name} ...")
+        self._model_status.setText(f"Loading {model_name} …")
 
         self._worker = ModelLoadWorker(self._backend, model_name)
         self._worker.progress.connect(lambda msg: self._model_status.setText(msg))
@@ -222,7 +344,7 @@ class SettingsPanel(QWidget):
         if status["loaded"]:
             self._model_status.setText(f"✓ Loaded: {status['model']} | SR: {status['sample_rate']} Hz")
         else:
-            self._model_status.setText("No model loaded — click 'Load Model' to begin")
+            self._model_status.setText("No model loaded — download then load from above")
 
     def update_theme(self, dark: bool):
         self._dark = dark

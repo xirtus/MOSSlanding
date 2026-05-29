@@ -4,6 +4,8 @@ import functools
 import importlib.util
 import logging
 import os
+import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Optional, Callable
@@ -14,20 +16,38 @@ from transformers import AutoModel, AutoProcessor
 
 log = logging.getLogger(__name__)
 
-# ── Disable broken cuDNN SDPA backend ──────────────────────
+# ── VRAM fragmentation workaround ────────────────────────────
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
+# ── Disable broken cuDNN SDPA backend ────────────────────────
 torch.backends.cuda.enable_cudnn_sdp(False)
 torch.backends.cuda.enable_flash_sdp(True)
 torch.backends.cuda.enable_mem_efficient_sdp(True)
 torch.backends.cuda.enable_math_sdp(True)
 
-# ── Model registry ─────────────────────────────────────────
+# ── App data directory ───────────────────────────────────────
+
+def _get_app_data_dir() -> Path:
+    """Platform-appropriate application data directory."""
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    return base / "Mosslanding"
+
+
+APP_DIR = _get_app_data_dir()
+MODELS_DIR = APP_DIR / "models"
+os.environ.setdefault("HF_HOME", str(APP_DIR / "huggingface"))
+os.environ.setdefault("HF_HUB_CACHE", str(MODELS_DIR))
+
+# ── Model registry ───────────────────────────────────────────
 MODEL_TTS = "OpenMOSS-Team/MOSS-TTS-v1.5"
 MODEL_VOICE_GEN = "OpenMOSS-Team/MOSS-VoiceGenerator"
 
-CACHE_DIR = Path(__file__).resolve().parent.parent / "models"
-os.environ.setdefault("HF_HUB_CACHE", str(CACHE_DIR))
-
-# ── Language tag choices ────────────────────────────────────
+# ── Language tag choices ──────────────────────────────────────
 LANGUAGE_TAGS = [
     "Chinese", "Cantonese", "English", "Arabic", "Czech", "Danish",
     "Dutch", "Finnish", "French", "German", "Greek", "Hebrew",
@@ -64,16 +84,26 @@ def gpu_info() -> dict:
     if not torch.cuda.is_available():
         return {"cuda": False, "device": "cpu"}
     props = torch.cuda.get_device_properties(0)
+    free_bytes = props.total_memory - torch.cuda.memory_allocated()
     return {
         "cuda": True,
         "name": props.name,
         "vram_total_gb": props.total_memory / (1024**3),
-        "vram_free_gb": (
-            props.total_memory - torch.cuda.memory_allocated()
-        ) / (1024**3),
+        "vram_free_gb": free_bytes / (1024**3),
         "compute_capability": f"{props.major}.{props.minor}",
         "cuda_version": torch.version.cuda,
     }
+
+
+def get_model_size_gb(model_name: str) -> Optional[float]:
+    """Estimate download size for a HuggingFace model by checking
+    its config / readme.  Returns None if unknown."""
+    # Known sizes (rough safetensors + config)
+    KNOWN_SIZES: dict[str, float] = {
+        "OpenMOSS-Team/MOSS-TTS-v1.5": 4.2,
+        "OpenMOSS-Team/MOSS-VoiceGenerator": 1.2,
+    }
+    return KNOWN_SIZES.get(model_name)
 
 
 class MossTTSBackend:
@@ -87,6 +117,12 @@ class MossTTSBackend:
         self._loaded_model_name: Optional[str] = None
         self._progress_callback: Optional[Callable[[str], None]] = None
 
+        # Ensure app directories exist
+        APP_DIR.mkdir(parents=True, exist_ok=True)
+        MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ── Progress callback ─────────────────────────────────
+
     def set_progress_callback(self, cb: Callable[[str], None] | None):
         self._progress_callback = cb
 
@@ -95,14 +131,52 @@ class MossTTSBackend:
         if self._progress_callback:
             self._progress_callback(msg)
 
+    # ── Model download (explicit, user-facing) ────────────
+
+    def download_model(self, model_name: str) -> bool:
+        """Explicitly download a model from HuggingFace into the app cache.
+
+        This is the user-visible "Download" action.  It simply fetches
+        the processor and model config/weights so that a later
+        ``load_model()`` call is instant.
+        """
+        self._emit(f"Downloading {model_name} …")
+
+        size_gb = get_model_size_gb(model_name)
+        if size_gb:
+            self._emit(f"  Expected download: ~{size_gb:.1f} GB")
+        self._emit(f"  Cache: {MODELS_DIR}")
+
+        try:
+            self._emit("  Fetching processor …")
+            AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+
+            self._emit("  Fetching model weights …")
+            dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            AutoModel.from_pretrained(
+                model_name, trust_remote_code=True, torch_dtype=dtype,
+            )
+
+            self._emit(f"✓ {model_name} downloaded successfully.")
+            return True
+        except Exception as exc:
+            self._emit(f"✗ Download failed: {exc}")
+            return False
+
+    # ── Model loading / unloading ─────────────────────────
+
     def load_model(self, model_name: str = MODEL_TTS, force_reload: bool = False):
-        """Load (or swap) a MOSS-TTS model onto GPU."""
+        """Load (or swap) a MOSS-TTS model onto GPU.
+
+        If the model hasn't been downloaded yet, it will be pulled from the
+        HuggingFace Hub automatically by ``from_pretrained()``.
+        """
         if not force_reload and self._loaded_model_name == model_name:
             self._emit(f"Model '{model_name}' already loaded.")
             return
 
         self.unload()
-        self._emit(f"Loading model: {model_name} ...")
+        self._emit(f"Loading model: {model_name} …")
 
         device = get_available_device()
         dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
@@ -110,22 +184,30 @@ class MossTTSBackend:
 
         self._emit(f"  Device: {device}, dtype: {dtype}, attn: {attn}")
 
+        # --- Processor (keep on CPU to save VRAM) ------------
+        self._emit("  Loading processor …")
         self._processor = AutoProcessor.from_pretrained(
             model_name, trust_remote_code=True
         )
-
-        # Move audio tokenizer to GPU if present
+        # The audio tokenizer stays on CPU — it only runs a few times per
+        # generation and keeping it off-GPU saves 500 MB–1 GB VRAM.
         if hasattr(self._processor, "audio_tokenizer"):
-            self._processor.audio_tokenizer = self._processor.audio_tokenizer.to(device)
+            self._processor.audio_tokenizer = self._processor.audio_tokenizer.cpu()
 
-        model_kwargs = {
+        # --- Model ------------------------------------------
+        self._emit("  Loading model weights …")
+        model_kwargs: dict = {
             "trust_remote_code": True,
             "torch_dtype": dtype,
         }
         if attn and attn not in {"", "none"}:
             model_kwargs["attn_implementation"] = attn
 
-        self._model = AutoModel.from_pretrained(model_name, **model_kwargs).to(device)
+        # Use device_map="auto" so that transformers can
+        # intelligently place layers — helps avoid OOM on 8 GB cards.
+        model_kwargs["device_map"] = "auto"
+
+        self._model = AutoModel.from_pretrained(model_name, **model_kwargs)
         self._model.eval()
         self._device = device
 
@@ -135,12 +217,12 @@ class MossTTSBackend:
         self._loaded_model_name = model_name
 
         vram_used = torch.cuda.memory_allocated() / (1024**3) if device.type == "cuda" else 0
-        self._emit(f"Model loaded. VRAM used: {vram_used:.1f} GB | Sample rate: {self._sample_rate} Hz")
+        self._emit(f"✓ Model loaded. VRAM: {vram_used:.1f} GB | SR: {self._sample_rate} Hz")
 
     def unload(self):
         """Free GPU memory by unloading the model."""
         if self._model is not None:
-            self._emit("Unloading model from GPU ...")
+            self._emit("Unloading model from GPU …")
             self._model.cpu()
             del self._model
             self._model = None
@@ -153,7 +235,15 @@ class MossTTSBackend:
             self._processor = None
         self._loaded_model_name = None
         torch.cuda.empty_cache()
-        self._emit("GPU memory cleared.")
+        self._emit("✓ GPU memory cleared.")
+
+    # ── Convenience ───────────────────────────────────────
+
+    def preload(self, model_name: str = MODEL_TTS):
+        """Load model at startup."""
+        self.load_model(model_name)
+
+    # ── Properties ────────────────────────────────────────
 
     @property
     def is_loaded(self) -> bool:
@@ -167,13 +257,21 @@ class MossTTSBackend:
     def sample_rate(self) -> int:
         return self._sample_rate
 
-    # ── TTS Inference ───────────────────────────────────
+    def status(self) -> dict:
+        return {
+            "loaded": self.is_loaded,
+            "model": self._loaded_model_name,
+            "gpu": gpu_info(),
+            "sample_rate": self._sample_rate,
+        }
+
+    # ── TTS Inference ─────────────────────────────────────
 
     def generate_tts(
         self,
         text: str,
         reference_audio: Optional[str] = None,
-        mode: str = "clone",       # "direct", "clone", "continue", "continue_clone"
+        mode: str = "clone",
         language_tag: Optional[str] = None,
         duration_tokens: Optional[int] = None,
         temperature: float = 1.7,
@@ -182,11 +280,7 @@ class MossTTSBackend:
         repetition_penalty: float = 1.0,
         max_new_tokens: int = 4096,
     ) -> tuple[int, np.ndarray]:
-        """
-        Run TTS inference.
-
-        Returns (sample_rate_hz, audio_array_float32).
-        """
+        """Run TTS inference.  Returns (sample_rate_hz, audio_array_float32)."""
         if not self.is_loaded:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
@@ -197,10 +291,10 @@ class MossTTSBackend:
         if not text:
             raise ValueError("Text is empty.")
 
-        self._emit(f"Synthesizing {len(text)} chars ...")
+        self._emit(f"Synthesizing {len(text)} chars …")
 
         # Build conversation
-        user_kwargs = {"text": text}
+        user_kwargs: dict = {"text": text}
         if language_tag and language_tag.strip():
             user_kwargs["language"] = language_tag.strip()
         if duration_tokens is not None:
@@ -263,11 +357,11 @@ class MossTTSBackend:
 
         elapsed = time.monotonic() - started
         duration_s = len(audio_np) / self._sample_rate
-        self._emit(f"Done in {elapsed:.1f}s | Audio: {duration_s:.1f}s | RTF: {elapsed/duration_s:.2f}x")
+        self._emit(f"✓ Done in {elapsed:.1f}s | Audio: {duration_s:.1f}s | RTF: {elapsed/duration_s:.2f}x")
 
         return self._sample_rate, audio_np
 
-    # ── Voice Generator Inference ───────────────────────
+    # ── Voice Generator Inference ─────────────────────────
 
     def generate_voice(
         self,
@@ -293,7 +387,7 @@ class MossTTSBackend:
         if not instruction:
             raise ValueError("Voice instruction is empty.")
 
-        self._emit(f"Designing voice: '{instruction[:60]}...'")
+        self._emit(f"Designing voice: '{instruction[:60]}…'")
 
         conversations = [[
             self._processor.build_user_message(text=text, instruction=instruction)
@@ -330,20 +424,6 @@ class MossTTSBackend:
 
         elapsed = time.monotonic() - started
         duration_s = len(audio_np) / self._sample_rate
-        self._emit(f"Done in {elapsed:.1f}s | Audio: {duration_s:.1f}s | RTF: {elapsed/duration_s:.2f}x")
+        self._emit(f"✓ Done in {elapsed:.1f}s | Audio: {duration_s:.1f}s | RTF: {elapsed/duration_s:.2f}x")
 
         return self._sample_rate, audio_np
-
-    # ── Helpers ─────────────────────────────────────────
-
-    def preload(self, model_name: str = MODEL_TTS):
-        """Convenience: load model at startup."""
-        self.load_model(model_name)
-
-    def status(self) -> dict:
-        return {
-            "loaded": self.is_loaded,
-            "model": self._loaded_model_name,
-            "gpu": gpu_info(),
-            "sample_rate": self._sample_rate,
-        }
