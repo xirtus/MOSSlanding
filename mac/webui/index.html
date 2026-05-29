@@ -398,6 +398,10 @@
           <span id="time-total">0:00</span>
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-radius:7px;font-size:12px;" id="model-status-bar">
+        <span id="model-status-dot" style="font-size:9px">⬤</span>
+        <span id="model-status-text" style="color:var(--text-muted)">Checking…</span>
+      </div>
       <div class="action-row">
         <button class="btn-primary" id="btn-synth" onclick="synthesize()" style="min-width:90px">▶ Speak</button>
         <button class="btn-green btn-sm" id="btn-play" onclick="togglePlay()" style="display:none">▶ Play</button>
@@ -577,26 +581,44 @@ function updateStatusUI(d) {
   document.getElementById("s-status").textContent = d.status || "—";
   document.getElementById("s-models-dir").textContent = d.models_dir || "—";
 
+  const dot  = document.getElementById("model-status-dot");
+  const stxt = document.getElementById("model-status-text");
+
   if (d.status === "ready") {
     setBadge("ready", "Ready");
     pw.style.display = "none";
     document.getElementById("btn-synth").disabled = false;
+    dot.style.color = "var(--green)";
+    stxt.textContent = `Model ready — ${d.model_id.split("/")[1]}`;
+    stxt.style.color = "var(--text)";
   } else if (d.status === "generating") {
     setBadge("loading", "Generating…");
     pw.style.display = "none";
+    dot.style.color = "var(--yellow)";
+    stxt.textContent = "Generating audio… this takes 2–10 min on M1";
+    stxt.style.color = "var(--yellow)";
   } else if (d.status === "loading") {
     setBadge("loading", `Loading ${d.progress}%`);
     pw.style.display = "flex";
     document.getElementById("progress-bar").style.width = d.progress + "%";
     document.getElementById("progress-text").textContent = d.message || "Loading…";
     document.getElementById("btn-synth").disabled = true;
+    dot.style.color = "var(--yellow)";
+    stxt.textContent = `Loading model… ${d.progress}% — ${d.message || ""}`;
+    stxt.style.color = "var(--yellow)";
   } else if (d.status === "error") {
     setBadge("error", "Error");
     pw.style.display = "none";
     document.getElementById("btn-synth").disabled = false;
+    dot.style.color = "var(--red)";
+    stxt.textContent = "Error loading model — click Load Model in Settings";
+    stxt.style.color = "var(--red)";
   } else {
     setBadge("idle", "Idle");
     document.getElementById("btn-synth").disabled = false;
+    dot.style.color = "var(--text-muted)";
+    stxt.textContent = "Model not loaded — go to Settings → Load Model";
+    stxt.style.color = "var(--text-muted)";
   }
 }
 
