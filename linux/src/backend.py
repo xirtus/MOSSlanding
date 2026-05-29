@@ -10,14 +10,18 @@ import time
 from pathlib import Path
 from typing import Optional, Callable
 
+# ── MUST be set before import torch ───────────────────────────
+# PyTorch reads these env vars at import time; setting them afterwards
+# has zero effect.  expandable_segments prevents the "1 GiB reserved but
+# unallocated" fragmentation that causes OOM on ≤8 GiB cards.
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+
 import numpy as np
 import torch
 from transformers import AutoModel, AutoProcessor
 
 log = logging.getLogger(__name__)
-
-# ── VRAM fragmentation workaround ────────────────────────────
-os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
 
 # ── Disable broken cuDNN SDPA backend ────────────────────────
 torch.backends.cuda.enable_cudnn_sdp(False)
