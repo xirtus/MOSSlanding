@@ -267,6 +267,21 @@ class TTSPanel(QWidget):
         dur_row.addStretch()
         settings_layout.addLayout(dur_row)
 
+        # Quick token presets (~approx duration at 24 kHz)
+        preset_row = QHBoxLayout()
+        preset_label = QLabel("Quick Presets")
+        preset_label.setStyleSheet("font-size: 11px; color: rgba(128,128,128,0.7);")
+        preset_row.addWidget(preset_label)
+        for t in [256, 512, 1024, 2048, 4096]:
+            btn = QPushButton(str(t))
+            btn.setFixedWidth(48)
+            btn.setFixedHeight(22)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(lambda checked, v=t: self._set_duration_token(v))
+            preset_row.addWidget(btn)
+        preset_row.addStretch()
+        settings_layout.addLayout(preset_row)
+
         right_layout.addWidget(settings_group)
 
         # Progress bar
@@ -301,6 +316,13 @@ class TTSPanel(QWidget):
         splitter.addWidget(right_scroll)
         splitter.setSizes([420, 400])
         layout.addWidget(splitter)
+
+    # ── Duration preset ──────────────────────────────────
+
+    def _set_duration_token(self, value: int):
+        """Quick-set the duration tokens spinbox from a preset button."""
+        self._duration_check.setChecked(True)
+        self._duration_tokens_spin.setValue(value)
 
     # ── Mode handling ───────────────────────────────────
 

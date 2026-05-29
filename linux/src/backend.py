@@ -17,13 +17,52 @@ from transformers import AutoModel, AutoProcessor
 log = logging.getLogger(__name__)
 
 # ── VRAM fragmentation workaround ────────────────────────────
-os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
 
 # ── Disable broken cuDNN SDPA backend ────────────────────────
 torch.backends.cuda.enable_cudnn_sdp(False)
 torch.backends.cuda.enable_flash_sdp(True)
 torch.backends.cuda.enable_mem_efficient_sdp(True)
 torch.backends.cuda.enable_math_sdp(True)
+
+# ── Patch torchaudio.load → soundfile (torchcodec broken) ────
+
+def _patch_torchaudio():
+    """Replace torchaudio.load / torchaudio.info with soundfile wrappers.
+
+    torchaudio 2.9+ defaults to the ``torchcodec`` backend which requires
+    FFmpeg shared libraries that are often missing.  Since we already ship
+    ``soundfile``, this patch routes all torchaudio file I/O through
+    soundfile — transparent to the MOSS-TTS processor.
+    """
+    try:
+        import soundfile as sf
+        import torchaudio as _ta
+
+        def _sf_load(uri, *args, **kwargs):
+            data_np, sr = sf.read(str(uri), dtype="float32", always_2d=False)
+            if data_np.ndim == 1:
+                data_np = data_np[:, None].T  # (samples,) → (1, samples)
+            else:
+                data_np = data_np.T  # (samples, ch) → (ch, samples)
+            return torch.from_numpy(data_np.copy()), sr
+
+        def _sf_info(uri, *args, **kwargs):
+            info = sf.info(str(uri))
+            class _Info: pass
+            o = _Info()
+            o.sample_rate = info.samplerate
+            o.num_frames  = info.frames
+            o.num_channels = info.channels
+            return o
+
+        _ta.load = _sf_load
+        _ta.info = _sf_info
+        log.debug("torchaudio.load/info patched → soundfile")
+    except Exception:
+        log.debug("torchaudio patch skipped (soundfile not available?)")
+
+_patch_torchaudio()
 
 # ── App data directory ───────────────────────────────────────
 
