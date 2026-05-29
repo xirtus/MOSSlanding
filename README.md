@@ -12,11 +12,11 @@
 
 ---
 
-## Why MOSS TTS destroys the competition
+## Why MOSSlanding destroys the competition
 
-Most "AI voice" tools make you pay $30/month, upload your audio to their servers, and still sound robotic. MOSS TTS runs entirely on your hardware, produces broadcast-quality speech, and clones voices with frightening accuracy — all from open-source models you own.
+Most "AI voice" tools make you pay $30/month, upload your audio to their servers, and still sound robotic. MOSSLanding runs entirely on your hardware, produces broadcast-quality speech, and clones voices with frightening accuracy — all from open-source models you own.
 
-| | MOSS TTS | ElevenLabs | Murf | Play.ht |
+| | MOSSLanding | ElevenLabs | Murf | Play.ht |
 |---|:---:|:---:|:---:|:---:|
 | **Zero-shot voice cloning** | ✅ | ✅ | ❌ | ✅ |
 | **Runs 100% offline** | ✅ | ❌ | ❌ | ❌ |
