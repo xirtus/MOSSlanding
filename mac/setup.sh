@@ -2,11 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
 echo "================================================="
 echo "  MOSSlanding - macOS Setup (Apple Silicon / M1)"
 echo "================================================="
+
+# The venv lives in App Support so the app always finds it from /Applications
+APP_SUPPORT="$HOME/Library/Application Support/MOSSlanding"
+VENV_DIR="$APP_SUPPORT/venv"
+mkdir -p "$APP_SUPPORT"
 
 # Find Python 3.10+
 PYTHON=""
@@ -23,21 +27,28 @@ if [ -z "$PYTHON" ]; then
 fi
 
 echo "Using: $PYTHON ($($PYTHON --version))"
+echo "Venv:  $VENV_DIR"
 
-# Create venv
-if [ ! -d venv ]; then
+# Create venv in App Support
+if [ ! -d "$VENV_DIR" ]; then
     echo ""
     echo "Creating virtual environment..."
-    "$PYTHON" -m venv venv
+    "$PYTHON" -m venv "$VENV_DIR"
 fi
 
-source venv/bin/activate
+# Also keep a local ./venv symlink for dev convenience
+if [ ! -e "$SCRIPT_DIR/venv" ]; then
+    ln -s "$VENV_DIR" "$SCRIPT_DIR/venv"
+fi
+
+source "$VENV_DIR/bin/activate"
 pip install --upgrade pip --quiet
 
 echo ""
 echo "Installing Python dependencies..."
 
 pip install torch torchaudio torchcodec --quiet 2>/dev/null || pip install torch torchaudio --quiet
+pip install pillow --quiet
 
 pip install \
     fastapi \
@@ -74,11 +85,16 @@ echo ""
 echo "================================================="
 echo "  Setup complete!"
 echo ""
-echo "  Next steps:"
-echo "    1. bash build.sh     # build MossTTS.app"
-echo "    2. open MossTTS.app  # launch the app"
+echo "  Venv installed at:"
+echo "    $VENV_DIR"
 echo ""
-echo "  Or test backend directly:"
-echo "    source venv/bin/activate && python backend/server.py"
+echo "  Next steps:"
+echo "    1. bash build.sh        # build MOSSlanding.app"
+echo "    2. bash dist.sh         # build DMG installer"
+echo "    3. open MOSSlanding.app # launch"
+echo ""
+echo "  Or test the backend:"
+echo "    source \"$VENV_DIR/bin/activate\""
+echo "    python backend/server.py"
 echo "    curl http://127.0.0.1:8765/api/status"
 echo "================================================="
