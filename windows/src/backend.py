@@ -25,6 +25,7 @@ MODEL_TTS = "OpenMOSS-Team/MOSS-TTS-v1.5"
 MODEL_VOICE_GEN = "OpenMOSS-Team/MOSS-VoiceGenerator"
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "models"
+os.environ.setdefault("HF_HUB_CACHE", str(CACHE_DIR))
 
 # ── Language tag choices ────────────────────────────────────
 LANGUAGE_TAGS = [
@@ -110,7 +111,7 @@ class MossTTSBackend:
         self._emit(f"  Device: {device}, dtype: {dtype}, attn: {attn}")
 
         self._processor = AutoProcessor.from_pretrained(
-            model_name, trust_remote_code=True, cache_dir=str(CACHE_DIR)
+            model_name, trust_remote_code=True
         )
 
         # Move audio tokenizer to GPU if present
@@ -120,7 +121,6 @@ class MossTTSBackend:
         model_kwargs = {
             "trust_remote_code": True,
             "torch_dtype": dtype,
-            "cache_dir": str(CACHE_DIR),
         }
         if attn and attn not in {"", "none"}:
             model_kwargs["attn_implementation"] = attn
