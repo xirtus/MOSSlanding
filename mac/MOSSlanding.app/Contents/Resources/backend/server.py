@@ -362,7 +362,7 @@ async def synthesize(req: SynthesizeRequest):
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
 
-        quality = max(4, min(32, req.quality))   # clamp to valid range
+        quality = max(4, min(32, req.quality))
 
         gen_kwargs: dict = dict(
             input_ids=input_ids,
@@ -373,15 +373,21 @@ async def synthesize(req: SynthesizeRequest):
             top_p=req.top_p,
             top_k=req.top_k,
             repetition_penalty=req.repetition_penalty,
+            n_vq_for_inference=quality,
         )
-        # n_vq_for_inference only accepted by MossTTSLocal; ignore for others
-        try:
-            gen_kwargs["n_vq_for_inference"] = quality
-        except Exception:
-            pass
 
-        with torch.no_grad():
-            outputs = model.generate(**gen_kwargs)
+        # Run blocking generate() in a thread so the event loop stays alive
+        _state.status = "generating"
+        _state.progress_msg = "Generating audio…"
+        loop = asyncio.get_event_loop()
+        def _generate():
+            with torch.no_grad():
+                return model.generate(**gen_kwargs)
+        try:
+            outputs = await loop.run_in_executor(None, _generate)
+        finally:
+            _state.status = "ready"
+            _state.progress_msg = "Ready"
 
         messages = processor.decode(outputs)
         if not messages:

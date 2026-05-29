@@ -581,6 +581,9 @@ function updateStatusUI(d) {
     setBadge("ready", "Ready");
     pw.style.display = "none";
     document.getElementById("btn-synth").disabled = false;
+  } else if (d.status === "generating") {
+    setBadge("loading", "Generating…");
+    pw.style.display = "none";
   } else if (d.status === "loading") {
     setBadge("loading", `Loading ${d.progress}%`);
     pw.style.display = "flex";
