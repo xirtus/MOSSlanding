@@ -6,9 +6,9 @@
 <title>MOSSlanding</title>
 <style>
   :root {
-    --bg: #1e1e1e;
-    --surface: #2a2a2a;
-    --surface2: #333;
+    --bg: #1a1a1a;
+    --surface: #242424;
+    --surface2: #2e2e2e;
     --border: #3a3a3a;
     --accent: #0a84ff;
     --accent-hover: #409cff;
@@ -17,260 +17,220 @@
     --green: #30d158;
     --red: #ff453a;
     --yellow: #ffd60a;
+    --teal: #40c8e0;
     --radius: 10px;
+    --radius-sm: 7px;
   }
   @media (prefers-color-scheme: light) {
     :root {
-      --bg: #f2f2f7;
-      --surface: #ffffff;
-      --surface2: #f5f5f5;
-      --border: #d1d1d6;
-      --text: #1c1c1e;
-      --text-muted: #6c6c70;
+      --bg: #f2f2f7; --surface: #fff; --surface2: #f0f0f0;
+      --border: #d1d1d6; --text: #1c1c1e; --text-muted: #6c6c70;
     }
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+  html, body { height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    font-size: 13px;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
 
+  /* ── Header ── */
   header {
-    padding: 16px 20px 12px;
+    padding: 13px 18px 11px;
     display: flex;
     align-items: center;
     gap: 10px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
-
+    flex-shrink: 0;
   }
+  header .logo { font-size: 20px; }
   header h1 { font-size: 15px; font-weight: 600; }
-  header .logo { font-size: 22px; }
-
   #status-badge {
     margin-left: auto;
-    font-size: 11px;
-    padding: 3px 9px;
+    font-size: 11px; padding: 3px 10px;
     border-radius: 100px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--surface2); color: var(--text-muted);
+    white-space: nowrap;
   }
-  #status-badge.ready { background: rgba(48,209,88,.18); color: var(--green); }
-  #status-badge.loading { background: rgba(255,214,10,.15); color: var(--yellow); }
-  #status-badge.error { background: rgba(255,69,58,.15); color: var(--red); }
+  #status-badge.ready  { background: rgba(48,209,88,.18); color: var(--green); }
+  #status-badge.loading{ background: rgba(255,214,10,.15); color: var(--yellow); }
+  #status-badge.error  { background: rgba(255,69,58,.15);  color: var(--red); }
 
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .tab {
+    padding: 9px 18px; font-size: 13px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── Scrollable main ── */
   main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-    max-width: 700px;
-    width: 100%;
-    margin: 0 auto;
+    flex: 1; overflow-y: auto; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 14px;
   }
 
-  .card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
+  /* ── Cards ── */
+  .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); }
   .card-header {
-    padding: 10px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: .5px;
+    padding: 9px 14px;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .5px;
     border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
   }
-  .card-body { padding: 14px; }
+  .card-body { padding: 13px 14px; display: flex; flex-direction: column; gap: 10px; }
 
+  /* ── Mode selector ── */
+  .mode-row { display: flex; gap: 6px; }
+  .mode-btn {
+    flex: 1; padding: 7px 4px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); font-size: 12px; font-weight: 500;
+    cursor: pointer; text-align: center; transition: all .15s;
+  }
+  .mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(10,132,255,.1); }
+
+  /* ── Textarea ── */
   textarea {
-    width: 100%;
-    min-height: 130px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    color: var(--text);
-    resize: vertical;
-    outline: none;
+    width: 100%; min-height: 110px; resize: vertical;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 11px;
+    font-size: 13px; font-family: inherit; color: var(--text); outline: none;
     transition: border-color .15s;
   }
   textarea:focus { border-color: var(--accent); }
   textarea::placeholder { color: var(--text-muted); }
 
-  .row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+  /* ── Form rows ── */
+  .form-row { display: flex; align-items: center; gap: 10px; }
+  .form-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; min-width: 80px; }
+  .form-label-sm { font-size: 11px; color: var(--text-muted); white-space: nowrap; min-width: 70px; }
 
   select {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 13px;
-    color: var(--text);
-    outline: none;
-    cursor: pointer;
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 9px;
+    font-size: 13px; color: var(--text); outline: none; cursor: pointer;
   }
 
+  /* ── Quality pills ── */
+  .quality-row { display: flex; gap: 6px; }
+  .quality-btn {
+    flex: 1; padding: 6px 4px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); font-size: 12px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all .15s;
+  }
+  .quality-btn.active { border-color: var(--teal); color: var(--teal); background: rgba(64,200,224,.1); }
+  .quality-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Sliders ── */
+  .slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+  .slider-item { display: flex; flex-direction: column; gap: 4px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .slider-name { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .slider-val  { font-size: 12px; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    width: 100%; height: 4px; cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  /* ── Spinbox row ── */
+  .spin-row { display: flex; align-items: center; gap: 8px; }
+  input[type=number] {
+    width: 90px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 5px 9px;
+    font-size: 13px; color: var(--text); outline: none;
+    -moz-appearance: textfield;
+  }
+  input[type=number]:focus { border-color: var(--accent); }
+  input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+
+  /* ── Checkbox ── */
+  .check-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+  /* ── Buttons ── */
   button {
-    border: none;
-    cursor: pointer;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 9px 18px;
-    transition: opacity .15s, transform .08s;
+    border: none; cursor: pointer; border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    padding: 8px 16px; transition: opacity .15s, transform .08s;
   }
   button:active { transform: scale(.97); }
-  button:disabled { opacity: .4; cursor: default; }
+  button:disabled { opacity: .35; cursor: default; }
+  .btn-primary   { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-green     { background: var(--green); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger    { background: rgba(255,69,58,.12); color: var(--red); border: 1px solid rgba(255,69,58,.3); }
+  .btn-sm        { padding: 5px 11px; font-size: 12px; }
 
-  #btn-synthesize {
-    background: var(--accent);
-    color: white;
-    min-width: 90px;
-  }
-  #btn-synthesize:hover:not(:disabled) { background: var(--accent-hover); }
+  /* ── Action row ── */
+  .action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-  #btn-play {
-    background: var(--green);
-    color: white;
-    display: none;
-    min-width: 72px;
-  }
-  #btn-save {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    display: none;
-  }
-  #btn-load-model {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    font-size: 12px;
-    padding: 6px 12px;
-  }
+  /* ── Progress ── */
+  #progress-wrap { display: none; flex-direction: column; gap: 5px; }
+  #progress-bar-bg { width: 100%; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  #progress-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+  #progress-text { font-size: 11px; color: var(--text-muted); }
 
-  #progress-wrap {
-    display: none;
-    flex-direction: column;
-    gap: 6px;
-  }
-  #progress-bar-bg {
-    width: 100%;
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  #progress-bar {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 3px;
-    transition: width .4s ease;
-  }
-  #progress-text { font-size: 12px; color: var(--text-muted); }
+  /* ── Waveform ── */
+  #waveform-wrap { display: none; flex-direction: column; gap: 6px; }
+  #waveform-canvas { width: 100%; height: 72px; border-radius: 7px; background: var(--surface2); cursor: pointer; }
+  .playback-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
-  /* Waveform */
-  #waveform-wrap {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-  }
-  #waveform-canvas {
-    width: 100%;
-    height: 80px;
-    border-radius: 8px;
-    background: var(--surface2);
-    cursor: pointer;
-  }
-  #playback-info {
-    font-size: 12px;
-    color: var(--text-muted);
-    display: flex;
-    justify-content: space-between;
-  }
-
-  /* Voice drop zone */
-  #drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  #drop-zone:hover, #drop-zone.drag-over {
-    border-color: var(--accent);
-    background: rgba(10,132,255,.07);
-    color: var(--accent);
-  }
-  #drop-zone .drop-icon { font-size: 28px; margin-bottom: 6px; }
-
-  /* Voice list */
-  #voice-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 32px;
-  }
+  /* ── Voice chips ── */
+  #voice-list { display: flex; flex-wrap: wrap; gap: 7px; min-height: 28px; }
   .voice-chip {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: border-color .15s;
+    display: flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer;
+    transition: border-color .12s;
   }
   .voice-chip.active { border-color: var(--accent); color: var(--accent); }
   .voice-chip .del { color: var(--text-muted); margin-left: 2px; font-size: 14px; line-height: 1; }
   .voice-chip .del:hover { color: var(--red); }
 
+  /* ── Drop zone ── */
+  #drop-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 18px; text-align: center; cursor: pointer; color: var(--text-muted);
+    transition: border-color .15s, background .15s;
+  }
+  #drop-zone:hover, #drop-zone.drag-over { border-color: var(--accent); background: rgba(10,132,255,.06); color: var(--accent); }
+  #drop-zone .icon { font-size: 26px; margin-bottom: 5px; }
+
+  /* ── char count ── */
   #char-count { font-size: 11px; color: var(--text-muted); text-align: right; }
 
-  /* Toast */
+  /* ── Model info ── */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .info-item { font-size: 12px; }
+  .info-item span { color: var(--text-muted); }
+
+  /* ── Toast ── */
   #toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
+    position: fixed; bottom: 18px; left: 50%;
     transform: translateX(-50%) translateY(60px);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 18px;
-    font-size: 13px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.3);
-    transition: transform .25s ease;
-    pointer-events: none;
-    z-index: 999;
-    white-space: nowrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 9px 16px; font-size: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    transition: transform .22s ease; pointer-events: none; z-index: 999; white-space: nowrap;
   }
   #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── divider ── */
+  .divider { height: 1px; background: var(--border); }
+
+  section.hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -281,268 +241,442 @@
   <span id="status-badge">Idle</span>
 </header>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('tts', this)">🎙 Voice Cloning</div>
+  <div class="tab" onclick="switchTab('voices', this)">🎤 Voice Library</div>
+  <div class="tab" onclick="switchTab('settings', this)">⚙ Settings</div>
+</div>
+
 <main>
+
+<!-- ══════════════ TTS TAB ══════════════ -->
+<div id="tab-tts" class="tab-panel active">
+
+  <!-- Mode -->
+  <div class="card">
+    <div class="card-header">Mode</div>
+    <div class="card-body">
+      <div class="mode-row">
+        <div class="mode-btn active" onclick="setMode('direct',this)">Direct</div>
+        <div class="mode-btn" onclick="setMode('clone',this)">Clone Voice</div>
+        <div class="mode-btn" onclick="setMode('continue',this)">Continuation</div>
+      </div>
+      <div id="mode-hint" style="font-size:11px;color:var(--text-muted)">Generate speech without a reference voice.</div>
+    </div>
+  </div>
 
   <!-- Text input -->
   <div class="card">
     <div class="card-header">Text to Speak</div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
-      <textarea id="text-input" placeholder="Type or paste text here… (supports English, Chinese, Japanese, and 28 more languages)"></textarea>
+    <div class="card-body">
+      <textarea id="text-input" placeholder="Type or paste text… Supports [pause 1.5s] tags."></textarea>
       <div id="char-count">0 characters</div>
-
-      <div class="row">
-        <label>Language</label>
+      <div class="form-row">
+        <span class="form-label">Language</span>
         <select id="lang-select">
           <option value="">Auto-detect</option>
           <option value="Chinese">Chinese</option>
+          <option value="Cantonese">Cantonese</option>
           <option value="English">English</option>
-          <option value="Japanese">Japanese</option>
+          <option value="Arabic">Arabic</option>
+          <option value="Czech">Czech</option>
+          <option value="Danish">Danish</option>
+          <option value="Dutch">Dutch</option>
+          <option value="Finnish">Finnish</option>
           <option value="French">French</option>
           <option value="German">German</option>
-          <option value="Spanish">Spanish</option>
-          <option value="Korean">Korean</option>
-          <option value="Russian">Russian</option>
-          <option value="Arabic">Arabic</option>
+          <option value="Greek">Greek</option>
+          <option value="Hebrew">Hebrew</option>
           <option value="Hindi">Hindi</option>
-          <option value="Portuguese">Portuguese</option>
+          <option value="Hungarian">Hungarian</option>
           <option value="Italian">Italian</option>
-          <option value="Dutch">Dutch</option>
+          <option value="Japanese">Japanese</option>
+          <option value="Korean">Korean</option>
+          <option value="Macedonian">Macedonian</option>
+          <option value="Malay">Malay</option>
+          <option value="Persian (Farsi)">Persian (Farsi)</option>
           <option value="Polish">Polish</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Romanian">Romanian</option>
+          <option value="Russian">Russian</option>
+          <option value="Spanish">Spanish</option>
+          <option value="Swahili">Swahili</option>
+          <option value="Swedish">Swedish</option>
+          <option value="Tagalog">Tagalog</option>
+          <option value="Thai">Thai</option>
           <option value="Turkish">Turkish</option>
           <option value="Vietnamese">Vietnamese</option>
-          <option value="Thai">Thai</option>
-          <option value="Cantonese">Cantonese</option>
         </select>
-      </div>
-
-      <div class="row">
-        <button id="btn-synthesize" onclick="synthesize()">Speak</button>
-        <button id="btn-play" onclick="togglePlay()">▶ Play</button>
-        <button id="btn-save" onclick="saveAudio()">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Loading / progress -->
-  <div class="card" id="progress-card" style="display:none;">
+  <!-- Quality & tokens -->
+  <div class="card">
+    <div class="card-header">Quality</div>
     <div class="card-body">
+      <div class="quality-row">
+        <div class="quality-btn" onclick="setQuality(4,this)" title="Fastest — minimal codec depth">4×</div>
+        <div class="quality-btn" onclick="setQuality(8,this)">8×</div>
+        <div class="quality-btn" onclick="setQuality(16,this)">16×</div>
+        <div class="quality-btn active" onclick="setQuality(32,this)" title="Maximum fidelity — 32 RVQ layers">32× ★</div>
+      </div>
+      <div class="quality-hint">32× uses all 32 RVQ codebook layers — highest fidelity, same speed on M1.</div>
+
+      <div class="form-row" style="margin-top:4px">
+        <span class="form-label">Max tokens</span>
+        <input type="number" id="max-tokens" value="4096" min="256" max="8192" step="128">
+        <span style="font-size:11px;color:var(--text-muted)">≈ speech length</span>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="duration-enable" onchange="toggleDuration(this)">
+        <label for="duration-enable" style="cursor:pointer">Lock duration to</label>
+        <input type="number" id="duration-tokens" value="256" min="1" max="8192" step="32" disabled style="width:80px">
+        <span style="font-size:11px;color:var(--text-muted)">tokens</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generation parameters -->
+  <div class="card">
+    <div class="card-header">Generation Parameters</div>
+    <div class="card-body">
+      <div class="slider-grid">
+        <div class="slider-item">
+          <div class="slider-header">
+            <span class="slider-name">Temperature</span>
+            <span class="slider-val" id="val-temp">1.70</span>
+          </div>
+          <input type="range" id="sl-temp" min="10" max="300" value="170"
+                 oninput="document.getElementById('val-temp').textContent=(this.value/100).toFixed(2)">
+        </div>
+        <div class="slider-item">
+          <div class="slider-header">
+            <span class="slider-name">Top-P</span>
+            <span class="slider-val" id="val-topp">0.80</span>
+          </div>
+          <input type="range" id="sl-topp" min="10" max="100" value="80"
+                 oninput="document.getElementById('val-topp').textContent=(this.value/100).toFixed(2)">
+        </div>
+        <div class="slider-item">
+          <div class="slider-header">
+            <span class="slider-name">Top-K</span>
+            <span class="slider-val" id="val-topk">25</span>
+          </div>
+          <input type="range" id="sl-topk" min="1" max="200" value="25"
+                 oninput="document.getElementById('val-topk').textContent=this.value">
+        </div>
+        <div class="slider-item">
+          <div class="slider-header">
+            <span class="slider-name">Rep. Penalty</span>
+            <span class="slider-val" id="val-rep">1.00</span>
+          </div>
+          <input type="range" id="sl-rep" min="80" max="200" value="100"
+                 oninput="document.getElementById('val-rep').textContent=(this.value/100).toFixed(2)">
+        </div>
+      </div>
+      <div style="text-align:right">
+        <button class="btn-secondary btn-sm" onclick="resetParams()">Reset defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate button + waveform -->
+  <div class="card">
+    <div class="card-body">
+      <!-- progress -->
       <div id="progress-wrap">
         <div id="progress-bar-bg"><div id="progress-bar" style="width:0%"></div></div>
         <div id="progress-text">Loading…</div>
       </div>
-    </div>
-  </div>
-
-  <!-- Waveform output -->
-  <div class="card" id="audio-card" style="display:none;">
-    <div class="card-header">Generated Audio</div>
-    <div class="card-body">
+      <!-- waveform -->
       <div id="waveform-wrap">
-        <canvas id="waveform-canvas"></canvas>
-        <div id="playback-info">
+        <canvas id="waveform-canvas" onclick="seekAudio(event)"></canvas>
+        <div class="playback-row">
           <span id="time-current">0:00</span>
           <span id="time-total">0:00</span>
         </div>
       </div>
+      <div class="action-row">
+        <button class="btn-primary" id="btn-synth" onclick="synthesize()" style="min-width:90px">▶ Speak</button>
+        <button class="btn-green btn-sm" id="btn-play" onclick="togglePlay()" style="display:none">▶ Play</button>
+        <button class="btn-secondary btn-sm" id="btn-save" onclick="saveAudio()" style="display:none">⬇ Save</button>
+        <span id="audio-dur" style="font-size:11px;color:var(--text-muted);margin-left:auto"></span>
+      </div>
     </div>
   </div>
 
-  <!-- Voice cloning -->
+</div><!-- /tab-tts -->
+
+
+<!-- ══════════════ VOICES TAB ══════════════ -->
+<div id="tab-voices" class="tab-panel">
+
   <div class="card">
-    <div class="card-header">Voice Cloning (optional)</div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+    <div class="card-header">Add Voice Sample</div>
+    <div class="card-body">
       <div id="drop-zone"
            ondragover="event.preventDefault();this.classList.add('drag-over')"
            ondragleave="this.classList.remove('drag-over')"
            ondrop="handleDrop(event)"
            onclick="document.getElementById('file-input').click()">
-        <div class="drop-icon">🎙️</div>
+        <div class="icon">🎙️</div>
         <div>Drop a voice sample here or click to upload</div>
-        <div style="font-size:11px;margin-top:4px;">WAV, MP3, M4A, FLAC — 3-30 seconds works best</div>
+        <div style="font-size:11px;margin-top:4px;opacity:.7">WAV, MP3, M4A, FLAC — 5–30 seconds works best</div>
       </div>
       <input type="file" id="file-input" accept=".wav,.mp3,.m4a,.flac,.ogg" style="display:none" onchange="uploadVoice(this.files[0])">
+    </div>
+  </div>
 
-      <div id="voice-list-wrap" style="display:none;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Saved voices (click to use):</div>
-        <div id="voice-list"></div>
+  <div class="card">
+    <div class="card-header">Saved Voices</div>
+    <div class="card-body">
+      <div id="voice-list-empty" style="font-size:12px;color:var(--text-muted)">No voices saved yet. Upload a sample above.</div>
+      <div id="voice-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="font-size:12px;color:var(--text-muted);line-height:1.6">
+      <strong style="color:var(--text)">Tips for best cloning quality:</strong><br>
+      • 10–20 seconds of clean audio works best<br>
+      • Single speaker, minimal background noise<br>
+      • Select a saved voice in the Voice Cloning tab, then set mode to <em>Clone Voice</em>
+    </div>
+  </div>
+
+</div><!-- /tab-voices -->
+
+
+<!-- ══════════════ SETTINGS TAB ══════════════ -->
+<div id="tab-settings" class="tab-panel">
+
+  <div class="card">
+    <div class="card-header">Model Status</div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-item"><span>Model: </span><span id="s-model-id">—</span></div>
+        <div class="info-item"><span>Device: </span><span id="s-device">—</span></div>
+        <div class="info-item"><span>Status: </span><span id="s-status">—</span></div>
+        <div class="info-item"><span>Models dir: </span></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);word-break:break-all" id="s-models-dir">—</div>
+      <div class="action-row" style="margin-top:6px">
+        <button class="btn-primary btn-sm" onclick="loadModel()">Load Model</button>
+        <button class="btn-secondary btn-sm" id="btn-load-model-idle" onclick="loadModel()">Reload</button>
       </div>
     </div>
   </div>
 
-  <!-- Model status card -->
-  <div class="card" id="model-card">
-    <div class="card-body" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <div style="flex:1;font-size:12px;color:var(--text-muted);">
-        <strong>Model:</strong> <span id="model-id-display">—</span><br>
-        <strong>Device:</strong> <span id="device-display">—</span>
-      </div>
-      <button id="btn-load-model" onclick="loadModel()">Load Model</button>
+  <div class="card">
+    <div class="card-header">Available Models</div>
+    <div class="card-body" id="models-list">
+      <div style="font-size:12px;color:var(--text-muted)">Loading…</div>
     </div>
   </div>
+
+  <div class="card">
+    <div class="card-body" style="font-size:12px;color:var(--text-muted);line-height:1.6">
+      <strong style="color:var(--text)">About MOSSlanding</strong><br>
+      Native macOS launcher for the MOSS-TTS model family.<br>
+      Models download to <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">~/Library/Application Support/MOSSlanding/models/</code><br>
+      Audio saves to <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">~/Desktop/MOSSlanding/</code>
+    </div>
+  </div>
+
+</div><!-- /tab-settings -->
 
 </main>
 
 <div id="toast"></div>
 
 <script>
-// ── state ──────────────────────────────────────────────────────────────────
-let audioBuffer = null;
-let audioCtx = null;
-let sourceNode = null;
-let isPlaying = false;
-let startTime = 0;
-let pauseOffset = 0;
-let lastSavedPath = "";
-let lastSavedName = "";
+// ── state ─────────────────────────────────────────────────────────────────
+let audioBuffer = null, audioCtx = null, sourceNode = null;
+let isPlaying = false, startTime = 0, pauseOffset = 0;
+let lastSavedName = "output.wav";
 let selectedVoice = null;
-let statusPollTimer = null;
+let currentMode = "direct";
+let currentQuality = 32;
+let waveformData = [];
 
-// ── init ───────────────────────────────────────────────────────────────────
+// ── init ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("text-input").addEventListener("input", updateCharCount);
   pollStatus();
-  loadVoices();
   setInterval(pollStatus, 3000);
+  loadVoices();
 });
 
-function updateCharCount() {
-  const n = document.getElementById("text-input").value.length;
-  document.getElementById("char-count").textContent = n + " characters";
+// ── tabs ──────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-" + name).classList.add("active");
+  if (name === "settings") loadModelsList();
 }
 
-// ── status polling ─────────────────────────────────────────────────────────
+// ── mode ──────────────────────────────────────────────────────────────────
+const MODE_HINTS = {
+  direct:   "Generate speech without a reference voice.",
+  clone:    "Clone the selected voice. Choose a voice in the Voice Library tab.",
+  continue: "Continue from a reference audio — the generated speech matches the voice and tempo.",
+};
+function setMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("mode-hint").textContent = MODE_HINTS[mode];
+}
+
+// ── quality ───────────────────────────────────────────────────────────────
+function setQuality(q, el) {
+  currentQuality = q;
+  document.querySelectorAll(".quality-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+}
+
+// ── params ────────────────────────────────────────────────────────────────
+function resetParams() {
+  document.getElementById("sl-temp").value = 170;
+  document.getElementById("val-temp").textContent = "1.70";
+  document.getElementById("sl-topp").value = 80;
+  document.getElementById("val-topp").textContent = "0.80";
+  document.getElementById("sl-topk").value = 25;
+  document.getElementById("val-topk").textContent = "25";
+  document.getElementById("sl-rep").value = 100;
+  document.getElementById("val-rep").textContent = "1.00";
+  document.getElementById("max-tokens").value = 4096;
+}
+
+function toggleDuration(cb) {
+  document.getElementById("duration-tokens").disabled = !cb.checked;
+}
+
+function updateCharCount() {
+  document.getElementById("char-count").textContent =
+    document.getElementById("text-input").value.length + " characters";
+}
+
+// ── status polling ────────────────────────────────────────────────────────
 async function pollStatus() {
   try {
-    const r = await fetch("/api/status");
-    const d = await r.json();
-    updateStatus(d);
-  } catch (e) {
-    setBadge("error", "Server offline");
-  }
+    const d = await (await fetch("/api/status")).json();
+    updateStatusUI(d);
+  } catch { setBadge("error", "Server offline"); }
 }
 
-function updateStatus(d) {
-  document.getElementById("model-id-display").textContent = d.model_id || "—";
-  document.getElementById("device-display").textContent = d.device || "—";
-
+function updateStatusUI(d) {
   const badge = document.getElementById("status-badge");
-  const progressCard = document.getElementById("progress-card");
-  const progressWrap = document.getElementById("progress-wrap");
-  const loadBtn = document.getElementById("btn-load-model");
+  const pw = document.getElementById("progress-wrap");
+
+  document.getElementById("s-model-id").textContent = d.model_id || "—";
+  document.getElementById("s-device").textContent = d.device || "—";
+  document.getElementById("s-status").textContent = d.status || "—";
+  document.getElementById("s-models-dir").textContent = d.models_dir || "—";
 
   if (d.status === "ready") {
     setBadge("ready", "Ready");
-    progressCard.style.display = "none";
-    loadBtn.style.display = "none";
-    document.getElementById("btn-synthesize").disabled = false;
+    pw.style.display = "none";
+    document.getElementById("btn-synth").disabled = false;
   } else if (d.status === "loading") {
     setBadge("loading", `Loading ${d.progress}%`);
-    progressCard.style.display = "";
-    progressWrap.style.display = "flex";
+    pw.style.display = "flex";
     document.getElementById("progress-bar").style.width = d.progress + "%";
     document.getElementById("progress-text").textContent = d.message || "Loading…";
-    document.getElementById("btn-synthesize").disabled = true;
+    document.getElementById("btn-synth").disabled = true;
   } else if (d.status === "error") {
     setBadge("error", "Error");
-    progressCard.style.display = "";
-    progressWrap.style.display = "none";
-    document.getElementById("progress-text").textContent = "Error: " + (d.error || "unknown");
-    document.getElementById("btn-synthesize").disabled = false;
-    loadBtn.style.display = "";
+    pw.style.display = "none";
+    document.getElementById("btn-synth").disabled = false;
   } else {
     setBadge("idle", "Idle");
-    loadBtn.style.display = "";
-    document.getElementById("btn-synthesize").disabled = false;
+    document.getElementById("btn-synth").disabled = false;
   }
 }
 
-function setBadge(cls, text) {
+function setBadge(cls, txt) {
   const b = document.getElementById("status-badge");
-  b.className = cls;
-  b.textContent = text;
+  b.className = cls; b.textContent = txt;
 }
 
-// ── synthesis ──────────────────────────────────────────────────────────────
+// ── synthesis ─────────────────────────────────────────────────────────────
 async function synthesize() {
   const text = document.getElementById("text-input").value.trim();
-  if (!text) { toast("Please enter some text."); return; }
+  if (!text) { toast("Enter some text first."); return; }
 
-  const lang = document.getElementById("lang-select").value;
-  const btn = document.getElementById("btn-synthesize");
-  btn.textContent = "⏳ Generating…";
-  btn.disabled = true;
+  const durEnable = document.getElementById("duration-enable").checked;
+  const body = {
+    text,
+    language:          document.getElementById("lang-select").value || null,
+    voice:             (currentMode !== "direct" && selectedVoice) ? selectedVoice : null,
+    mode:              currentMode,
+    quality:           currentQuality,
+    max_new_tokens:    parseInt(document.getElementById("max-tokens").value),
+    duration_tokens:   durEnable ? parseInt(document.getElementById("duration-tokens").value) : null,
+    temperature:       parseFloat(document.getElementById("sl-temp").value) / 100,
+    top_p:             parseFloat(document.getElementById("sl-topp").value) / 100,
+    top_k:             parseInt(document.getElementById("sl-topk").value),
+    repetition_penalty: parseFloat(document.getElementById("sl-rep").value) / 100,
+  };
+
+  const btn = document.getElementById("btn-synth");
+  btn.textContent = "⏳ Generating…"; btn.disabled = true;
   document.getElementById("btn-play").style.display = "none";
   document.getElementById("btn-save").style.display = "none";
+  document.getElementById("audio-dur").textContent = "";
 
   try {
-    const body = { text, language: lang || null, voice: selectedVoice || null };
     const r = await fetch("/api/synthesize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
-    if (r.status === 202) {
-      const d = await r.json();
-      toast("Model loading started — please wait and try again.");
-      pollStatus();
-      return;
-    }
+    if (r.status === 202) { toast("Model loading started — retry in a moment."); pollStatus(); return; }
+    if (!r.ok) throw new Error((await r.json().catch(()=>({detail:r.statusText}))).detail);
 
-    if (!r.ok) {
-      const d = await r.json().catch(() => ({ detail: r.statusText }));
-      throw new Error(d.detail || r.statusText);
-    }
+    lastSavedName = r.headers.get("X-Filename") || "mosslanding_output.wav";
+    const saved   = r.headers.get("X-Saved-Path") || "";
 
-    lastSavedPath = r.headers.get("X-Saved-Path") || "";
-    lastSavedName = r.headers.get("X-Filename") || "output.wav";
-
-    const blob = await r.blob();
-    const arrayBuf = await blob.arrayBuffer();
-
+    const ab = await (await r.blob()).arrayBuffer();
     if (!audioCtx) audioCtx = new AudioContext();
-    audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
+    audioBuffer = await audioCtx.decodeAudioData(ab);
 
     drawWaveform(audioBuffer);
-
-    document.getElementById("audio-card").style.display = "";
     document.getElementById("waveform-wrap").style.display = "flex";
     document.getElementById("btn-play").style.display = "";
-    document.getElementById("btn-play").textContent = "▶ Play";
     document.getElementById("btn-save").style.display = "";
+    document.getElementById("btn-play").textContent = "▶ Play";
+    document.getElementById("time-total").textContent = formatTime(audioBuffer.duration);
+    document.getElementById("audio-dur").textContent = audioBuffer.duration.toFixed(1) + "s";
 
-    const dur = audioBuffer.duration;
-    document.getElementById("time-total").textContent = formatTime(dur);
-
-    // Auto-play
     startPlayback(0);
-
-    if (lastSavedPath) toast(`Saved to Desktop/MOSSlanding/${lastSavedName}`);
+    if (saved) toast("Saved → Desktop/MOSSlanding/" + lastSavedName);
 
   } catch (e) {
     toast("Error: " + e.message, "error");
   } finally {
-    btn.textContent = "Speak";
-    btn.disabled = false;
+    btn.textContent = "▶ Speak"; btn.disabled = false;
   }
 }
 
-// ── playback ───────────────────────────────────────────────────────────────
+// ── playback ──────────────────────────────────────────────────────────────
 function startPlayback(offset) {
   if (!audioBuffer || !audioCtx) return;
-  if (sourceNode) { sourceNode.stop(); sourceNode.disconnect(); }
-
+  if (sourceNode) { try { sourceNode.stop(); } catch {} sourceNode.disconnect(); }
   sourceNode = audioCtx.createBufferSource();
   sourceNode.buffer = audioBuffer;
   sourceNode.connect(audioCtx.destination);
   sourceNode.start(0, offset);
   sourceNode.onended = () => {
-    isPlaying = false;
-    pauseOffset = 0;
+    isPlaying = false; pauseOffset = 0;
     document.getElementById("btn-play").textContent = "▶ Play";
     document.getElementById("time-current").textContent = "0:00";
+    updateWaveformPlayhead(0);
   };
-
   startTime = audioCtx.currentTime - offset;
   isPlaying = true;
   document.getElementById("btn-play").textContent = "⏸ Pause";
@@ -553,82 +687,68 @@ function togglePlay() {
   if (!audioBuffer) return;
   if (isPlaying) {
     pauseOffset = audioCtx.currentTime - startTime;
-    sourceNode.stop();
+    try { sourceNode.stop(); } catch {}
     isPlaying = false;
     document.getElementById("btn-play").textContent = "▶ Play";
-  } else {
-    startPlayback(pauseOffset);
-  }
+  } else { startPlayback(pauseOffset); }
 }
 
 function updatePlayhead() {
-  if (!isPlaying || !audioCtx) return;
-  const elapsed = audioCtx.currentTime - startTime;
-  document.getElementById("time-current").textContent = formatTime(Math.min(elapsed, audioBuffer.duration));
+  if (!isPlaying || !audioCtx || !audioBuffer) return;
+  const elapsed = Math.min(audioCtx.currentTime - startTime, audioBuffer.duration);
+  document.getElementById("time-current").textContent = formatTime(elapsed);
   updateWaveformPlayhead(elapsed / audioBuffer.duration);
   requestAnimationFrame(updatePlayhead);
 }
 
+function seekAudio(e) {
+  if (!audioBuffer) return;
+  const canvas = document.getElementById("waveform-canvas");
+  const frac = (e.clientX - canvas.getBoundingClientRect().left) / canvas.getBoundingClientRect().width;
+  pauseOffset = frac * audioBuffer.duration;
+  if (isPlaying) startPlayback(pauseOffset);
+  else updateWaveformPlayhead(frac);
+}
+
 function saveAudio() {
   if (!audioBuffer) return;
-  // Create an offline render and download
-  const offlineCtx = new OfflineAudioContext(
-    audioBuffer.numberOfChannels,
-    audioBuffer.length,
-    audioBuffer.sampleRate
-  );
-  const src = offlineCtx.createBufferSource();
-  src.buffer = audioBuffer;
-  src.connect(offlineCtx.destination);
-  src.start();
-  offlineCtx.startRendering().then(rendered => {
-    const wav = audioBufferToWav(rendered);
-    const blob = new Blob([wav], { type: "audio/wav" });
-    const url = URL.createObjectURL(blob);
+  const oc = new OfflineAudioContext(audioBuffer.numberOfChannels, audioBuffer.length, audioBuffer.sampleRate);
+  const s = oc.createBufferSource(); s.buffer = audioBuffer; s.connect(oc.destination); s.start();
+  oc.startRendering().then(r => {
+    const wav = audioBufferToWav(r);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = lastSavedName || "mosslanding_output.wav";
-    a.click();
-    URL.revokeObjectURL(url);
+    a.href = URL.createObjectURL(new Blob([wav], {type:"audio/wav"}));
+    a.download = lastSavedName; a.click();
+    URL.revokeObjectURL(a.href);
   });
 }
 
-// ── waveform ───────────────────────────────────────────────────────────────
-let waveformData = [];
-
+// ── waveform ──────────────────────────────────────────────────────────────
 function drawWaveform(buffer) {
   const canvas = document.getElementById("waveform-canvas");
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
   const data = buffer.getChannelData(0);
   const W = rect.width, H = rect.height;
   const step = Math.ceil(data.length / W);
   waveformData = [];
   for (let i = 0; i < W; i++) {
-    let min = 1, max = -1;
-    for (let j = 0; j < step; j++) {
-      const s = data[i * step + j] || 0;
-      if (s < min) min = s;
-      if (s > max) max = s;
-    }
-    waveformData.push([min, max]);
+    let mn = 1, mx = -1;
+    for (let j = 0; j < step; j++) { const s = data[i*step+j]||0; if(s<mn)mn=s; if(s>mx)mx=s; }
+    waveformData.push([mn, mx]);
   }
-  renderWaveform(ctx, waveformData, W, H, 0);
+  renderWaveform(ctx, W, H, 0);
 }
 
-function renderWaveform(ctx, data, W, H, progress) {
+function renderWaveform(ctx, W, H, progress) {
   ctx.clearRect(0, 0, W, H);
   const mid = H / 2;
-  for (let i = 0; i < data.length; i++) {
-    const [min, max] = data[i];
-    const y1 = mid - max * mid * 0.9;
-    const y2 = mid - min * mid * 0.9;
-    ctx.fillStyle = i / data.length < progress ? "#0a84ff" : "#555";
+  for (let i = 0; i < waveformData.length; i++) {
+    const [mn, mx] = waveformData[i];
+    const y1 = mid - mx * mid * 0.9, y2 = mid - mn * mid * 0.9;
+    ctx.fillStyle = i / waveformData.length < progress ? "#0a84ff" : "#4a4a4a";
     ctx.fillRect(i, y1, 1, Math.max(1, y2 - y1));
   }
 }
@@ -637,57 +757,36 @@ function updateWaveformPlayhead(frac) {
   if (!waveformData.length) return;
   const canvas = document.getElementById("waveform-canvas");
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.width / dpr, H = canvas.height / dpr;
   const ctx = canvas.getContext("2d");
-  ctx.scale ? null : ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  renderWaveform(ctx, waveformData, W, H, frac);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderWaveform(ctx, canvas.width/dpr, canvas.height/dpr, frac);
 }
 
-canvas_onclick: {
-  document.getElementById("waveform-canvas").addEventListener("click", function(e) {
-    if (!audioBuffer) return;
-    const rect = this.getBoundingClientRect();
-    const frac = (e.clientX - rect.left) / rect.width;
-    pauseOffset = frac * audioBuffer.duration;
-    if (isPlaying) startPlayback(pauseOffset);
-    else updateWaveformPlayhead(frac);
-  });
-}
-
-// ── voices ─────────────────────────────────────────────────────────────────
+// ── voices ────────────────────────────────────────────────────────────────
 async function loadVoices() {
   try {
-    const r = await fetch("/api/voices");
-    const d = await r.json();
+    const d = await (await fetch("/api/voices")).json();
     renderVoices(d.voices || []);
   } catch {}
 }
 
 function renderVoices(voices) {
   const list = document.getElementById("voice-list");
-  const wrap = document.getElementById("voice-list-wrap");
+  const empty = document.getElementById("voice-list-empty");
   list.innerHTML = "";
-  if (!voices.length) { wrap.style.display = "none"; return; }
-  wrap.style.display = "";
+  if (!voices.length) { empty.style.display = ""; return; }
+  empty.style.display = "none";
   voices.forEach(v => {
     const chip = document.createElement("div");
     chip.className = "voice-chip" + (selectedVoice === v.filename ? " active" : "");
     chip.innerHTML = `🎤 ${v.name} <span class="del" onclick="deleteVoice(event,'${v.filename}')">×</span>`;
-    chip.onclick = () => selectVoice(v.filename, chip);
+    chip.onclick = () => {
+      selectedVoice = selectedVoice === v.filename ? null : v.filename;
+      document.querySelectorAll(".voice-chip").forEach(c => c.classList.remove("active"));
+      if (selectedVoice) chip.classList.add("active");
+    };
     list.appendChild(chip);
   });
-}
-
-function selectVoice(filename, el) {
-  const chips = document.querySelectorAll(".voice-chip");
-  if (selectedVoice === filename) {
-    selectedVoice = null;
-    chips.forEach(c => c.classList.remove("active"));
-  } else {
-    selectedVoice = filename;
-    chips.forEach(c => c.classList.remove("active"));
-    el.classList.add("active");
-  }
 }
 
 async function deleteVoice(e, filename) {
@@ -700,8 +799,7 @@ async function deleteVoice(e, filename) {
 function handleDrop(e) {
   e.preventDefault();
   document.getElementById("drop-zone").classList.remove("drag-over");
-  const file = e.dataTransfer.files[0];
-  if (file) uploadVoice(file);
+  uploadVoice(e.dataTransfer.files[0]);
 }
 
 async function uploadVoice(file) {
@@ -712,61 +810,65 @@ async function uploadVoice(file) {
   try {
     const r = await fetch("/api/voices/upload", { method: "POST", body: fd });
     if (!r.ok) throw new Error(await r.text());
-    toast(`Voice "${file.name}" uploaded`);
+    toast(`Voice "${file.name}" saved`);
     loadVoices();
-  } catch (e) {
-    toast("Upload failed: " + e.message, "error");
-  }
+  } catch (e) { toast("Upload failed: " + e.message, "error"); }
 }
 
-// ── model loading ──────────────────────────────────────────────────────────
+// ── models list ───────────────────────────────────────────────────────────
+async function loadModelsList() {
+  try {
+    const d = await (await fetch("/api/models")).json();
+    const el = document.getElementById("models-list");
+    el.innerHTML = "";
+    (d.models || []).forEach(m => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px";
+      const dot = m.active ? "🟢" : (m.downloaded ? "⬤" : "○");
+      row.innerHTML = `
+        <span style="flex:1">
+          <strong>${m.id.split("/")[1]}</strong>
+          ${m.recommended ? '<span style="color:var(--teal);font-size:10px"> ★ recommended</span>' : ""}
+          <br><span style="color:var(--text-muted)">${m.description}</span>
+        </span>
+        <span style="color:var(--text-muted);white-space:nowrap">${m.size_gb}GB</span>
+        <span title="${m.active ? "Active" : m.downloaded ? "Downloaded" : "Not downloaded"}">${dot}</span>`;
+      el.appendChild(row);
+    });
+  } catch {}
+}
+
 async function loadModel() {
   await fetch("/api/load", { method: "POST" });
   pollStatus();
 }
 
-// ── utils ──────────────────────────────────────────────────────────────────
+// ── utils ─────────────────────────────────────────────────────────────────
 function formatTime(s) {
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return m + ":" + sec.toString().padStart(2, "0");
+  return Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2,"0");
 }
 
 function toast(msg, type) {
   const t = document.getElementById("toast");
-  t.textContent = (type === "error" ? "⚠️ " : "✓ ") + msg;
+  t.textContent = (type === "error" ? "⚠ " : "✓ ") + msg;
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 3000);
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 3000);
 }
 
-// ── WAV encoder (for client-side download) ─────────────────────────────────
 function audioBufferToWav(buffer) {
-  const nCh = buffer.numberOfChannels;
-  const sr = buffer.sampleRate;
-  const len = buffer.length;
-  const ab = new ArrayBuffer(44 + len * nCh * 2);
-  const view = new DataView(ab);
-  const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-  writeStr(0, "RIFF");
-  view.setUint32(4, 36 + len * nCh * 2, true);
-  writeStr(8, "WAVE");
-  writeStr(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, nCh, true);
-  view.setUint32(24, sr, true);
-  view.setUint32(28, sr * nCh * 2, true);
-  view.setUint16(32, nCh * 2, true);
-  view.setUint16(34, 16, true);
-  writeStr(36, "data");
-  view.setUint32(40, len * nCh * 2, true);
-  let offset = 44;
-  for (let i = 0; i < len; i++) {
-    for (let ch = 0; ch < nCh; ch++) {
-      const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-      offset += 2;
-    }
+  const nCh = buffer.numberOfChannels, sr = buffer.sampleRate, len = buffer.length;
+  const ab = new ArrayBuffer(44 + len * nCh * 2), view = new DataView(ab);
+  const ws = (off, s) => { for (let i=0;i<s.length;i++) view.setUint8(off+i,s.charCodeAt(i)); };
+  ws(0,"RIFF"); view.setUint32(4,36+len*nCh*2,true); ws(8,"WAVEfmt ");
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,nCh,true);
+  view.setUint32(24,sr,true); view.setUint32(28,sr*nCh*2,true);
+  view.setUint16(32,nCh*2,true); view.setUint16(34,16,true); ws(36,"data");
+  view.setUint32(40,len*nCh*2,true);
+  let off = 44;
+  for (let i=0;i<len;i++) for (let ch=0;ch<nCh;ch++) {
+    const s = Math.max(-1,Math.min(1,buffer.getChannelData(ch)[i]));
+    view.setInt16(off, s<0?s*0x8000:s*0x7FFF, true); off+=2;
   }
   return ab;
 }

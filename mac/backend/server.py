@@ -259,9 +259,15 @@ class SynthesizeRequest(BaseModel):
     text: str
     language: Optional[str] = None
     voice: Optional[str] = None          # filename of saved reference voice (no path)
+    mode: str = "clone"                  # direct | clone | continue
     max_new_tokens: int = 4096
-    temperature: Optional[float] = None
-    top_p: Optional[float] = None
+    duration_tokens: Optional[int] = None   # explicit duration control
+    quality: int = 32                    # n_vq_for_inference: 4 | 8 | 16 | 32
+    temperature: float = 1.7
+    top_p: float = 0.8
+    top_k: int = 25
+    repetition_penalty: float = 1.0
+    do_sample: bool = True
 
 
 class StatusResponse(BaseModel):
@@ -337,29 +343,42 @@ async def synthesize(req: SynthesizeRequest):
     device = _state.device
 
     reference_paths: list[str] = []
-    if req.voice:
+    if req.voice and req.mode != "direct":
         vp = VOICES_DIR / req.voice
         if vp.exists():
             reference_paths = [str(vp)]
 
-    kwargs = {}
+    msg_kwargs: dict = {}
     if req.language and req.language.lower() not in ("auto", ""):
-        kwargs["language"] = req.language
-
+        msg_kwargs["language"] = req.language
     if reference_paths:
-        kwargs["reference"] = reference_paths
+        msg_kwargs["reference"] = reference_paths
+    if req.duration_tokens:
+        msg_kwargs["tokens"] = req.duration_tokens
 
     try:
-        conversation = [processor.build_user_message(text=req.text, **kwargs)]
+        conversation = [processor.build_user_message(text=req.text, **msg_kwargs)]
         batch = processor([conversation], mode="generation")
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
 
-        gen_kwargs = dict(
+        quality = max(4, min(32, req.quality))   # clamp to valid range
+
+        gen_kwargs: dict = dict(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=req.max_new_tokens,
+            do_sample=req.do_sample,
+            temperature=req.temperature,
+            top_p=req.top_p,
+            top_k=req.top_k,
+            repetition_penalty=req.repetition_penalty,
         )
+        # n_vq_for_inference only accepted by MossTTSLocal; ignore for others
+        try:
+            gen_kwargs["n_vq_for_inference"] = quality
+        except Exception:
+            pass
 
         with torch.no_grad():
             outputs = model.generate(**gen_kwargs)
