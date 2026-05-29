@@ -92,14 +92,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
         let win = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 640),
-            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        win.titlebarAppearsTransparent = true
-        win.titleVisibility = .hidden
-        win.contentView = webV
         win.title = "MOSSlanding"
+        win.contentView = webV
         win.minSize = NSSize(width: 480, height: 400)
         win.center()
         win.isReleasedWhenClosed = false
@@ -154,8 +152,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let projectDir = bundle.deletingLastPathComponent()  // Mosslanding/
 
         let candidates: [URL] = [
-            // Same dir as .app
+            // Same dir as .app  (mac/venv)
             projectDir.appendingPathComponent("venv/bin/python3"),
+            // Parent of app dir (Mosslanding/venv — dev layout: Mosslanding/mac/MOSSlanding.app)
+            projectDir.deletingLastPathComponent().appendingPathComponent("venv/bin/python3"),
             // App support
             FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Application Support/MOSSlanding/venv/bin/python3"),

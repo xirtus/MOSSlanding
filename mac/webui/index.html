@@ -48,7 +48,7 @@
     gap: 10px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
-    -webkit-app-region: drag;
+
   }
   header h1 { font-size: 15px; font-weight: 600; }
   header .logo { font-size: 22px; }
@@ -60,7 +60,6 @@
     border-radius: 100px;
     background: var(--surface2);
     color: var(--text-muted);
-    -webkit-app-region: no-drag;
   }
   #status-badge.ready { background: rgba(48,209,88,.18); color: var(--green); }
   #status-badge.loading { background: rgba(255,214,10,.15); color: var(--yellow); }
@@ -140,7 +139,6 @@
     font-weight: 500;
     padding: 9px 18px;
     transition: opacity .15s, transform .08s;
-    -webkit-app-region: no-drag;
   }
   button:active { transform: scale(.97); }
   button:disabled { opacity: .4; cursor: default; }
