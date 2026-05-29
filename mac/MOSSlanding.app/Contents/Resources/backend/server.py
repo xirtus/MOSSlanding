@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 """MOSSlanding HTTP API server - optimized for Apple Silicon (MPS)."""
 
+# ── HuggingFace cache redirect — must happen before ANY hf/transformers import
+import os, sys
+from pathlib import Path
+_APP_SUPPORT = Path.home() / "Library" / "Application Support" / "MOSSlanding"
+_MODELS_HUB  = _APP_SUPPORT / "models" / "hub"
+_MODELS_HUB.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("HF_HOME",               str(_APP_SUPPORT / "models"))
+os.environ.setdefault("HF_HUB_CACHE",          str(_MODELS_HUB))
+os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(_MODELS_HUB))
+os.environ.setdefault("TRANSFORMERS_CACHE",     str(_MODELS_HUB))
+
 import asyncio
 import gc
 import importlib.util
 import io
 import json
 import logging
-import os
-import sys
 import threading
 import time
 import uuid
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -31,18 +39,38 @@ log = logging.getLogger("mosslanding")
 
 # ── paths ──────────────────────────────────────────────────────────────────
 APP_SUPPORT = Path.home() / "Library" / "Application Support" / "MOSSlanding"
-VOICES_DIR = APP_SUPPORT / "voices"
-OUTPUT_DIR = Path.home() / "Desktop" / "MOSSlanding"
-VOICES_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+VOICES_DIR  = APP_SUPPORT / "voices"
+MODELS_DIR  = APP_SUPPORT / "models"   # all HF model weights live here
+OUTPUT_DIR  = Path.home() / "Desktop"  / "MOSSlanding"
+for d in (VOICES_DIR, MODELS_DIR, OUTPUT_DIR):
+    d.mkdir(parents=True, exist_ok=True)
+
+# ── available models catalogue (forward-thinking: add more here later) ──────
+AVAILABLE_MODELS = {
+    "moss-local-1.7b": {
+        "id":          "OpenMOSS-Team/MOSS-TTS-Local-Transformer",
+        "description": "MOSS TTS Local Transformer 1.7B — fast, M1-optimised",
+        "size_gb":     3.5,
+        "recommended": True,
+    },
+    "moss-v1.5-8b": {
+        "id":          "OpenMOSS-Team/MOSS-TTS-v1.5",
+        "description": "MOSS TTS v1.5 8B — highest quality, needs 16 GB+ RAM",
+        "size_gb":     16.0,
+        "recommended": False,
+    },
+}
 
 # Allow the bundled MOSS-TTS repo to be found
 MOSS_TTS_REPO = Path(os.environ.get("MOSS_TTS_REPO", Path.home() / "MOSS-TTS"))
 if MOSS_TTS_REPO.exists() and str(MOSS_TTS_REPO) not in sys.path:
     sys.path.insert(0, str(MOSS_TTS_REPO))
 
-# ── model config ────────────────────────────────────────────────────────────
-MODEL_ID = os.environ.get("MOSS_TTS_MODEL_ID", "OpenMOSS-Team/MOSS-TTS-Local-Transformer")
+# ── active model ─────────────────────────────────────────────────────────────
+MODEL_ID = os.environ.get(
+    "MOSS_TTS_MODEL_ID",
+    AVAILABLE_MODELS["moss-local-1.7b"]["id"]
+)
 INACTIVITY_TIMEOUT = int(os.environ.get("MOSS_TTS_INACTIVITY_TIMEOUT", "300"))  # seconds
 
 # ── device setup ────────────────────────────────────────────────────────────
@@ -108,8 +136,20 @@ def _load_model():
         if device.type != "cuda":
             torch.backends.cuda.enable_cudnn_sdp(False)
 
-        processor = AutoProcessor.from_pretrained(
-            MODEL_ID,
+        def _from_pretrained_resilient(cls, model_id, **kwargs):
+            """Try online first, fall back to local cache on any network error."""
+            try:
+                return cls.from_pretrained(model_id, **kwargs)
+            except Exception as e:
+                if any(k in str(type(e)) or k in str(e) for k in
+                       ("BrokenPipe", "ConnectionError", "Timeout", "OSError",
+                        "pipe", "network", "HTTPError", "socket")):
+                    log.warning(f"Network error loading {model_id}, retrying from cache: {e}")
+                    return cls.from_pretrained(model_id, local_files_only=True, **kwargs)
+                raise
+
+        processor = _from_pretrained_resilient(
+            AutoProcessor, MODEL_ID,
             trust_remote_code=True,
         )
         _state.progress = 30
@@ -126,8 +166,8 @@ def _load_model():
                 if major >= 8:
                     attn_impl = "flash_attention_2"
 
-        model = AutoModel.from_pretrained(
-            MODEL_ID,
+        model = _from_pretrained_resilient(
+            AutoModel, MODEL_ID,
             trust_remote_code=True,
             attn_implementation=attn_impl,
             torch_dtype=dtype,
@@ -160,9 +200,12 @@ def _load_model():
 
     except Exception as exc:
         log.exception("Model loading failed")
-        _state.status = "error"
-        _state.error_msg = str(exc)
-        _state.progress = 0
+        with _state.lock:
+            _state.status = "error"
+            _state.error_msg = str(exc)
+            _state.progress = 0
+            _state.model = None
+            _state.processor = None
 
 
 def ensure_loaded():
@@ -227,6 +270,7 @@ class StatusResponse(BaseModel):
     message: str
     model_id: str
     device: str
+    models_dir: str
     error: Optional[str] = None
 
 
@@ -240,8 +284,29 @@ def get_status():
         message=_state.progress_msg,
         model_id=MODEL_ID,
         device=device_str,
+        models_dir=str(MODELS_DIR),
         error=_state.error_msg or None,
     )
+
+
+@app.get("/api/models")
+def list_models():
+    """Return model catalogue with download status for each."""
+    hub_dir = MODELS_DIR / "hub"
+    result = []
+    for key, info in AVAILABLE_MODELS.items():
+        hf_slug = "models--" + info["id"].replace("/", "--")
+        downloaded = (hub_dir / hf_slug).exists()
+        result.append({
+            "key":         key,
+            "id":          info["id"],
+            "description": info["description"],
+            "size_gb":     info["size_gb"],
+            "recommended": info["recommended"],
+            "downloaded":  downloaded,
+            "active":      info["id"] == MODEL_ID,
+        })
+    return {"models": result, "models_dir": str(MODELS_DIR)}
 
 
 @app.post("/api/load")
