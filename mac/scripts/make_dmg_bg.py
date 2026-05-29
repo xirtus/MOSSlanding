@@ -68,7 +68,7 @@ def main(out_path: str):
             font_title = ImageFont.load_default()
             font_sub   = font_title
 
-    title     = "MOSS TTS"
+    title     = "MOSSlanding"
     subtitle  = "Drag to Applications to install"
 
     # Title — bright

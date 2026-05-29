@@ -4,12 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-APP="$SCRIPT_DIR/MossTTS.app"
+APP="$SCRIPT_DIR/MOSSlanding.app"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
 
 echo "================================================="
-echo "  Building MossTTS.app"
+echo "  Building MOSSlanding.app"
 echo "================================================="
 
 # ── Compile Swift binary ─────────────────────────────────────────────────────
@@ -19,14 +19,14 @@ mkdir -p "$MACOS"
 
 swiftc \
     swift/MossTTSApp.swift \
-    -o "$MACOS/MossTTS" \
+    -o "$MACOS/MOSSlanding" \
     -framework AppKit \
     -framework WebKit \
     -framework Foundation \
     -O \
     2>&1
 
-echo "  Swift binary: $MACOS/MossTTS"
+echo "  Swift binary: $MACOS/MOSSlanding"
 
 # ── Info.plist ────────────────────────────────────────────────────────────────
 echo ""
@@ -38,13 +38,13 @@ cat > "$APP/Contents/Info.plist" << 'EOF'
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.mosstts.app</string>
+    <string>com.mosslanding.app</string>
     <key>CFBundleName</key>
-    <string>MossTTS</string>
+    <string>MOSSlanding</string>
     <key>CFBundleDisplayName</key>
-    <string>MOSS TTS</string>
+    <string>MOSSlanding</string>
     <key>CFBundleExecutable</key>
-    <string>MossTTS</string>
+    <string>MOSSlanding</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>
@@ -58,7 +58,7 @@ cat > "$APP/Contents/Info.plist" << 'EOF'
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>MOSS TTS uses the microphone to record voice cloning samples.</string>
+    <string>MOSSlanding uses the microphone to record voice cloning samples.</string>
     <key>NSAppleScriptEnabled</key>
     <false/>
 </dict>
@@ -81,8 +81,10 @@ echo "Generating app icon..."
 ICONSET="$RESOURCES/AppIcon.iconset"
 mkdir -p "$ICONSET"
 
-if [ -f "$SCRIPT_DIR/venv/bin/python3" ] || [ -f "$SCRIPT_DIR/venv/bin/python" ]; then
-    VENV_PY="$(ls "$SCRIPT_DIR/venv/bin/python"* | head -1)"
+VENV_DIR="$SCRIPT_DIR/venv"
+[ ! -d "$VENV_DIR" ] && VENV_DIR="$(dirname "$SCRIPT_DIR")/venv"
+if [ -f "$VENV_DIR/bin/python3" ] || [ -f "$VENV_DIR/bin/python" ]; then
+    VENV_PY="$(ls "$VENV_DIR/bin/python"* | head -1)"
     "$VENV_PY" "$SCRIPT_DIR/scripts/make_icon.py" "$ICONSET" 2>/dev/null && \
         iconutil -c icns "$ICONSET" -o "$RESOURCES/AppIcon.icns" && \
         echo "  AppIcon.icns created (Pillow)" || echo "  WARNING: icon generation failed"
@@ -91,7 +93,7 @@ else
 fi
 
 # ── chmod ─────────────────────────────────────────────────────────────────────
-chmod +x "$MACOS/MossTTS"
+chmod +x "$MACOS/MOSSlanding"
 
 echo ""
 echo "================================================="
@@ -102,5 +104,5 @@ echo ""
 echo "  To launch:"
 echo "    open $APP"
 echo ""
-echo "  Or from Finder: double-click MossTTS.app"
+echo "  Or from Finder: double-click MOSSlanding.app"
 echo "================================================="

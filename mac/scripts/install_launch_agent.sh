@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Install or remove the MOSS TTS LaunchAgent for start-at-login
 
-APP_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/MossTTS.app"
-PLIST_NAME="com.mosstts.launcher"
+APP_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/MOSSlanding.app"
+PLIST_NAME="com.mosslanding.launcher"
 PLIST_DEST="$HOME/Library/LaunchAgents/$PLIST_NAME.plist"
 
 usage() {
@@ -12,7 +12,7 @@ usage() {
 
 install() {
     if [ ! -d "$APP_PATH" ]; then
-        echo "ERROR: MossTTS.app not found at $APP_PATH"
+        echo "ERROR: MOSSlanding.app not found at $APP_PATH"
         echo "Run build.sh first."
         exit 1
     fi
@@ -28,7 +28,7 @@ install() {
     <string>$PLIST_NAME</string>
     <key>ProgramArguments</key>
     <array>
-        <string>$APP_PATH/Contents/MacOS/MossTTS</string>
+        <string>$APP_PATH/Contents/MacOS/MOSSlanding</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -44,15 +44,15 @@ install() {
         <string>4</string>
     </dict>
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/MossTTS.log</string>
+    <string>$HOME/Library/Logs/MOSSlanding.log</string>
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/MossTTS.log</string>
+    <string>$HOME/Library/Logs/MOSSlanding.log</string>
 </dict>
 </plist>
 PLISTEOF
 
     launchctl load "$PLIST_DEST" 2>/dev/null || launchctl bootstrap "gui/$(id -u)" "$PLIST_DEST" 2>/dev/null || true
-    echo "Installed: MOSS TTS will start at login."
+    echo "Installed: MOSSlanding will start at login."
     echo "Plist: $PLIST_DEST"
 }
 
@@ -60,7 +60,7 @@ uninstall() {
     if [ -f "$PLIST_DEST" ]; then
         launchctl unload "$PLIST_DEST" 2>/dev/null || launchctl bootout "gui/$(id -u)" "$PLIST_DEST" 2>/dev/null || true
         rm "$PLIST_DEST"
-        echo "Removed: MOSS TTS will no longer start at login."
+        echo "Removed: MOSSlanding will no longer start at login."
     else
         echo "Not installed."
     fi

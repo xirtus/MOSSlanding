@@ -36,11 +36,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = statusItem?.button else { return }
 
-        if let img = NSImage(systemSymbolName: "waveform", accessibilityDescription: "MOSS TTS") {
+        if let img = NSImage(systemSymbolName: "waveform", accessibilityDescription: "MOSSlanding") {
             img.isTemplate = true
             button.image = img
         } else {
-            button.title = "TTS"
+            button.title = "ML"
         }
 
         button.action = #selector(toggleWindow)
@@ -55,7 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         menu.addItem(loginItem)
         menu.addItem(NSMenuItem(title: "Restart Server", action: #selector(restartServer), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit MOSS TTS", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit MOSSlanding", action: #selector(quit), keyEquivalent: "q"))
 
         // Left click: toggle; right click: menu
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -99,7 +99,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         win.titlebarAppearsTransparent = true
         win.titleVisibility = .hidden
         win.contentView = webV
-        win.title = "MOSS TTS"
+        win.title = "MOSSlanding"
         win.minSize = NSSize(width: 480, height: 400)
         win.center()
         win.isReleasedWhenClosed = false
@@ -128,7 +128,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         </head>
         <body>
           <div class="spinner"></div>
-          <p>Starting MOSS TTS server…</p>
+          <p>Starting MOSSlanding……</p>
         </body>
         </html>
         """
@@ -158,7 +158,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             projectDir.appendingPathComponent("venv/bin/python3"),
             // App support
             FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Library/Application Support/MossTTS/venv/bin/python3"),
+                .appendingPathComponent("Library/Application Support/MOSSlanding/venv/bin/python3"),
         ]
 
         let scriptCandidates: [URL] = [
@@ -168,7 +168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             projectDir.appendingPathComponent("backend/server.py"),
             // App support
             FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Library/Application Support/MossTTS/backend/server.py"),
+                .appendingPathComponent("Library/Application Support/MOSSlanding/backend/server.py"),
         ]
 
         var pythonPath: String?
@@ -304,7 +304,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         <body>
           <h2>⚠️ Could not start server</h2>
           <p>Run setup first:</p>
-          <code>cd ~/Projects/Mosslanding && bash setup.sh</code>
+          <code>cd ~/Projects/Mosslanding/mac && bash setup.sh</code>
           <p>Then relaunch the app. The backend needs Python + dependencies installed in <code>venv/</code>.</p>
         </body>
         </html>
@@ -334,7 +334,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     private func launchAgentPlist() -> URL {
         let support = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/LaunchAgents/com.mosstts.launcher.plist")
+            .appendingPathComponent("Library/LaunchAgents/com.mosslanding.launcher.plist")
         return support
     }
 
@@ -379,7 +379,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 // MARK: - Associated object key
 
 private enum AssocKeys {
-    static let menuKey = UnsafeRawPointer(bitPattern: "mosstts.menu".hashValue)!
+    static let menuKey = UnsafeRawPointer(bitPattern: "mosslanding.menu".hashValue)!
 }
 
 // MARK: - Entry point
