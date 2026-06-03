@@ -6,118 +6,172 @@
 
 <div align="center">
 
-**[⬇️ Download for macOS](https://github.com/xirtus/MOSSlanding/releases/latest)** &nbsp;·&nbsp; **[🐧 Linux](linux/)** &nbsp;·&nbsp; **[🪟 Windows](windows/)** &nbsp;·&nbsp; Free & Open Source
+[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](#-linux)
+[![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)](#-macos)
+[![Windows](https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white)](#-windows)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
 
 ---
 
-## Why MOSSlanding destroys the competition
+## 🚀 Quick Install
 
-Most "AI voice" tools make you pay $30/month, upload your audio to their servers, and still sound robotic. MOSSLanding runs entirely on your hardware, produces broadcast-quality speech, and clones voices with frightening accuracy — all from open-source models you own.
+### Debian / Ubuntu (APT)
 
-| | MOSSLanding | ElevenLabs | Murf | Play.ht |
-|---|:---:|:---:|:---:|:---:|
-| **Zero-shot voice cloning** | ✅ | ✅ | ❌ | ✅ |
-| **Runs 100% offline** | ✅ | ❌ | ❌ | ❌ |
-| **Free forever** | ✅ | ❌ | ❌ | ❌ |
-| **31 languages** | ✅ | ✅ | ⚠️ | ⚠️ |
-| **Your data stays private** | ✅ | ❌ | ❌ | ❌ |
-| **Native desktop app** | ✅ | — | — | — |
-| **Windows + Linux + NVIDIA support** | ✅ | — | — | — |
+```bash
+# One command:
+curl -fsSL https://xirtus.github.io/MOSSlanding/install-apt.sh | sudo bash
+mosslanding
+```
+
+Or manually:
+
+```bash
+wget https://github.com/xirtus/MOSSlanding/releases/latest/download/mosslanding_latest_amd64.deb
+sudo dpkg -i mosslanding_latest_amd64.deb
+mosslanding
+```
+
+### Arch Linux (Pacman)
+
+```bash
+# Option 1: Download from GitHub Releases
+wget https://github.com/xirtus/MOSSlanding/releases/latest/download/mosslanding-1.0.0-1-x86_64.pkg.tar.zst
+sudo pacman -U mosslanding-1.0.0-1-x86_64.pkg.tar.zst
+mosslanding
+
+# Option 2: Build from AUR (coming soon — PKGBUILD in packaging/arch/)
+# git clone https://aur.archlinux.org/mosslanding.git
+# cd mosslanding && makepkg -si
+```
+
+### macOS
+
+```bash
+# Download DMG from Releases
+open https://github.com/xirtus/MOSSlanding/releases/latest
+# Drag Mosslanding.app to /Applications
+```
+
+### Windows
+
+```powershell
+# Download and run installer from Releases
+Invoke-WebRequest -Uri "https://github.com/xirtus/MOSSlanding/releases/latest/download/Mosslanding-Setup.exe" -OutFile "Mosslanding-Setup.exe"
+.\Mosslanding-Setup.exe
+```
 
 ---
 
-## What it can do
+## 📦 Package Formats
 
-**🎤 Voice Cloning** — Drop in any 5–30 second audio clip and it instantly learns the voice. Accent, tone, cadence — all of it. Works on the first try.
+| Format | System | Install Command | Status |
+|--------|--------|----------------|--------|
+| `.deb` | Debian / Ubuntu / Mint / Pop!_OS | `sudo dpkg -i mosslanding_*.deb` | ✅ Available |
+| `.pkg.tar.zst` | Arch Linux / Manjaro / EndeavourOS | `sudo pacman -U mosslanding-*.pkg.tar.zst` | ✅ Available |
+| `.dmg` | macOS (Apple Silicon) | Download & drag to Applications | ✅ Available |
+| `.exe` / `.ps1` | Windows 10/11 | Run installer | ✅ Available |
+| `.AppImage` | Any Linux | Download & run | ✅ Available |
+| APT Repo | Debian/Ubuntu | `sudo apt install mosslanding` | 🚧 Setup required |
+
+---
+
+## 🎯 Features
+
+**🎤 Voice Cloning** — Drop in any 5–30 second audio clip and it instantly learns the voice. Accent, tone, cadence — all of it.
 
 **🌍 31 Languages** — English, Chinese, Japanese, French, Spanish, Arabic, Hindi, Korean and 23 more. Switch mid-sentence.
 
 **🎯 Pinyin / IPA / Phoneme control** — Nail every pronunciation. Perfect for names, technical terms, multilingual scripts.
 
-**⏸️ Explicit pause control** — `[pause 1.5s]` anywhere in your text. Precise timing, no guessing.
+**⏸️ Pause control** — `[pause 1.5s]` anywhere in your text. Precise timing.
 
-**⚡ Apple Silicon MPS** — Runs the full 1.7B model on M1/M2/M3 via Metal. No GPU required. No CUDA. Just your Mac.
+**⚡ GPU Accelerated** — NVIDIA RTX 2070+ with bfloat16 precision. Apple Silicon via Metal MPS.
 
-**🪟🐧 Windows + Linux + NVIDIA** — Native PySide6 desktop app with Windows dark/light mode and KDE/GNOME theme integration. RTX 2070+ with bfloat16 precision.
-
-**🔒 100% private** — The model runs on your machine. Your voice samples never leave your device.
+**🔒 100% Private** — Everything runs on your machine. Your voice samples never leave your device.
 
 ---
 
-## Platforms
+## 🖥️ Platforms
 
-| Platform | Folder | Download |
-|---|---|---|
-| macOS (Apple Silicon) | [`mac/`](mac/) | **[MossTTS-1.0.dmg](https://github.com/xirtus/MOSSlanding/releases/latest)** |
-| Linux (NVIDIA GPU) | [`linux/`](linux/) | **[Install Guide](linux/#quick-start)** |
-| Windows (NVIDIA GPU) | [`windows/`](windows/) | **[Install Guide](windows/#quick-start)** |
+| Platform | GPU | Status |
+|----------|-----|--------|
+| Linux (Debian/Ubuntu) | NVIDIA RTX 2070+ | ✅ |
+| Linux (Arch) | NVIDIA RTX 2070+ | ✅ |
+| Linux (AppImage) | NVIDIA RTX 2070+ | ✅ |
+| macOS (Apple Silicon) | M1/M2/M3/M4 | ✅ |
+| Windows 10/11 | NVIDIA RTX 2070+ | ✅ |
 
----
-
-## macOS — Install in 60 seconds -- or use DMG
-
-```bash
-# 1. Download + drag MossTTS.app to /Applications
-# 2. One-time setup:
-cd ~/Projects/Mosslanding/mac && bash setup.sh
-
-# 3. Launch — appears in your menu bar instantly
-```
-
-Or build from source:
-```bash
-git clone https://github.com/xirtus/MOSSlanding
-cd MOSSlanding/mac
-bash setup.sh   # installs Python deps
-bash build.sh   # compiles the Swift app
-open MossTTS.app
-```
-
-**Requirements:** macOS 13+, Apple Silicon, 16 GB RAM, Python 3.10+
+**Requirements:** 8GB+ VRAM, 16GB system RAM, Python 3.10+
 
 ---
 
-## Linux — Install in 60 seconds
+## 🔧 Build from Source
 
 ```bash
 git clone https://github.com/xirtus/MOSSlanding
-cd MOSSlanding/linux
-./install.sh
+cd MOSSlanding
+
+# Linux
+cd release/linux && ./install.sh && mosslanding
+
+# Build packages
+cd release/packaging && ./build_all.sh
+# Output in release/dist/
 ```
-
-Then launch from your app menu (search "Mosslanding") or terminal:
-
-```bash
-mosslanding
-```
-
-**Requirements:** Linux (KDE/GNOME/Qt), NVIDIA GPU 8GB+ VRAM (RTX 2070+), Python 3.10+
-
-See [`linux/README.md`](linux/README.md) for manual install and AppImage build instructions.
 
 ---
 
-## Windows — Install in 60 seconds
+## 📁 Repository Structure
 
-```powershell
-git clone https://github.com/xirtus/MOSSlanding
-cd MOSSlanding\windows
-powershell -ExecutionPolicy Bypass -File install.ps1
 ```
-
-Then double-click `run.bat` or search "Mosslanding" in the Start Menu.
-
-**Requirements:** Windows 10/11, NVIDIA GPU 8GB+ VRAM (RTX 2070+), Python 3.10+
-
-See [`windows/README.md`](windows/README.md) for manual install and troubleshooting.
+release/
+├── linux/          # Linux app source + install scripts
+├── mac/            # macOS SwiftUI app + DMG builder
+├── windows/        # Windows app + PowerShell installer
+├── appimage/       # AppImage builder
+├── packaging/      # Native package builders
+│   ├── arch/       # PKGBUILD for Arch Linux / pacman
+│   ├── debian/     # DEBIAN/ control files for .deb
+│   ├── apt-repo/   # APT repository generator + one-liner installer
+│   └── build_all.sh # Build everything in one shot
+└── dist/           # Built packages output
+```
 
 ---
 
-## Built on MOSS-TTS
+## 🏗️ Built on MOSS-TTS
 
-This app is a native macOS / Linux / Windows launcher for the [MOSS-TTS family](https://github.com/OpenMOSS/MOSS-TTS) by OpenMOSS — a state-of-the-art open-source TTS system that outperforms closed-source models like Doubao and Gemini 2.5 Pro in subjective evaluations.
+This app is a native desktop launcher for the [MOSS-TTS family](https://github.com/OpenMOSS/MOSS-TTS) by OpenMOSS — state-of-the-art open-source TTS that outperforms closed-source models like Doubao and Gemini 2.5 Pro in subjective evaluations.
+
+**Models used:**
+- `OpenMOSS-Team/MOSS-TTS-v1.5` (~4-6 GB) — voice cloning & direct generation
+- `OpenMOSS-Team/MOSS-VoiceGenerator` (~1-2 GB) — voice design from text descriptions
+- `OpenMOSS-Team/MOSS-Audio-Tokenizer` (~1 GB) — audio encoding/decoding
+
+---
+
+## 🚢 Creating a Release
+
+1. Push a version tag:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. GitHub Actions automatically builds `.deb` and `.pkg.tar.zst` and attaches them to the release.
+
+3. (Optional) Deploy APT repo to GitHub Pages:
+   ```bash
+   cd release/packaging/apt-repo
+   ./setup-repo.sh 1.0.0
+   git checkout gh-pages
+   cp -r repo/* .
+   git add . && git commit -m "apt repo v1.0.0" && git push
+   ```
+
+4. (Optional) Submit PKGBUILD to AUR for `yay -S mosslanding` support.
 
 ---
 

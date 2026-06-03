@@ -37,3 +37,14 @@ venv
 
 # Logs
 *.log
+
+# Dist (built packages — keep clear, built by CI)
+dist/
+
+# Packaging build artifacts
+packaging/debian/opt/
+packaging/debian/usr/
+packaging/arch/build/
+packaging/arch/src/
+packaging/arch/pkg/
+packaging/apt-repo/repo/

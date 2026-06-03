@@ -1,0 +1,21 @@
+Package: mosslanding
+Version: 1.0.0
+Section: sound
+Priority: optional
+Architecture: amd64
+Depends: python3 (>= 3.10), python3-pip, python3-venv, python3-pyqt6, qt6-qpa-plugins, desktop-file-utils, nvidia-utils | amd64-microcode
+Recommends: ffmpeg, pipewire-pulse | pulseaudio, libgl1
+Maintainer: xirtus <xirtus@github.com>
+Homepage: https://github.com/xirtus/MOSSlanding
+Description: AI-powered offline text-to-speech with voice cloning
+ MOSSlanding is a native desktop application for the MOSS-TTS family
+ of models.  It runs entirely on your hardware — zero cloud, zero
+ subscription, zero limits.
+ .
+ Features:
+  - Zero-shot voice cloning from 5-second samples
+  - 31 languages with automatic detection
+  - Voice design from natural language descriptions
+  - NVIDIA GPU acceleration (RTX 2070+ recommended)
+  - Native Linux desktop integration (KDE/GNOME/Qt)
+  - All data stays on your machine

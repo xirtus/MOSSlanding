@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+# Clean up venv on removal
+rm -rf /opt/mosslanding/venv 2>/dev/null || true

@@ -1,0 +1,15 @@
+post_install() {
+    echo "→ Mosslanding installed to /opt/mosslanding"
+    echo "  First launch will auto-setup Python venv (~2 min)"
+    echo "  Run:  mosslanding"
+    update-desktop-database -q 2>/dev/null || true
+    gtk-update-icon-cache -q -f -t /usr/share/icons/hicolor 2>/dev/null || true
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    rm -rf /opt/mosslanding/venv 2>/dev/null || true
+}

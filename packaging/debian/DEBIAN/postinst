@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -e
+
+echo ""
+echo "╔══════════════════════════════════════════════════╗"
+echo "║        Mosslanding — Installed! 🎉              ║"
+echo "╠══════════════════════════════════════════════════╣"
+echo "║                                                  ║"
+echo "║  App installed to: /opt/mosslanding              ║"
+echo "║  First run auto-sets up Python venv (~2 min)     ║"
+echo "║                                                  ║"
+echo "║  Launch from terminal:                           ║"
+echo "║    $ mosslanding                                 ║"
+echo "║                                                  ║"
+echo "║  Or find 'Mosslanding' in your app menu          ║"
+echo "║                                                  ║"
+echo "║  First run downloads ~4-6 GB of AI models        ║"
+echo "╚══════════════════════════════════════════════════╝"
+echo ""
+
+# Icon cache
+if command -v gtk-update-icon-cache &>/dev/null; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+fi
+if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database /usr/share/applications 2>/dev/null || true
+fi

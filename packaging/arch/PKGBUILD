@@ -1,0 +1,93 @@
+# Maintainer: xirtus <xirtus@github.com>
+# Package: Mosslanding — MOSS-TTS Voice Synthesis Desktop App
+
+pkgname=mosslanding
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="AI-powered text-to-speech with voice cloning — runs 100% offline"
+arch=('x86_64')
+url="https://github.com/xirtus/MOSSlanding"
+license=('MIT')
+depends=('python>=3.10' 'python-pip' 'python-virtualenv' 'python-pyqt6' 'qt6-base' 'desktop-file-utils' 'gtk-update-icon-cache' 'nvidia-utils')
+optdepends=('flash-attention: faster model inference' 'cuda: GPU acceleration')
+makedepends=('git')
+install="${pkgname}.install"
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/xirtus/MOSSlanding/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    # Install app to /opt
+    install -d "${pkgdir}/opt/${pkgname}"
+    cp -r "${srcdir}/MOSSlanding-${pkgver}/release/linux/"* "${pkgdir}/opt/${pkgname}/"
+
+    # CLI launcher in /usr/bin
+    install -d "${pkgdir}/usr/bin"
+    cat > "${pkgdir}/usr/bin/${pkgname}" << 'CLIEOF'
+#!/usr/bin/env bash
+APP_DIR="/opt/mosslanding"
+if [ ! -d "$APP_DIR/venv" ]; then
+    echo "→ First run: setting up Python environment (1–2 min)..."
+    python3 -m venv "$APP_DIR/venv"
+    source "$APP_DIR/venv/bin/activate"
+    pip install --quiet --upgrade pip
+    pip install --quiet \
+        "torch==2.9.1+cu128" "torchaudio==2.9.1+cu128" \
+        --index-url https://download.pytorch.org/whl/cu128
+    pip install --quiet \
+        "transformers==5.0.0" \
+        "accelerate>=1.10.0" \
+        "safetensors>=0.6.0" \
+        "numpy>=2.0.0" \
+        "orjson>=3.11.0" \
+        "PyYAML>=6.0" \
+        "einops>=0.8.0" \
+        "tiktoken>=0.7.0" \
+        "tqdm>=4.67.0" \
+        "psutil>=5.9.0" \
+        "packaging>=24.0" \
+        "ninja>=1.11.0" \
+        "librosa>=0.11.0" \
+        "soundfile>=0.12.0" \
+        "scipy>=1.14.0" \
+        "pydantic>=2.0.0" \
+        "PySide6>=6.5.0"
+    pip install --quiet flash-attn 2>/dev/null || true
+    echo "✓ Setup complete. Launching..."
+    echo ""
+fi
+cd "$APP_DIR"
+source "$APP_DIR/venv/bin/activate"
+exec python -m src.main "$@"
+CLIEOF
+    chmod 755 "${pkgdir}/usr/bin/${pkgname}"
+
+    # Desktop entry
+    install -d "${pkgdir}/usr/share/applications"
+    cat > "${pkgdir}/usr/share/applications/${pkgname}.desktop" << DESKEOF
+[Desktop Entry]
+Type=Application
+Name=Mosslanding
+GenericName=MOSS-TTS Voice Synthesis
+Comment=AI-powered text-to-speech with voice cloning and voice design
+Icon=mosslanding
+Exec=/usr/bin/mosslanding %U
+Terminal=false
+Categories=Audio;Multimedia;ArtificialIntelligence;
+Keywords=TTS;voice;cloning;speech;synthesis;AI;MOSS;
+StartupWMClass=mosslanding
+StartupNotify=true
+DESKEOF
+
+    # Icons
+    for size in 32 48 64 128 256; do
+        install -d "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps"
+        cp "${pkgdir}/opt/${pkgname}/assets/icons/mosslanding_${size}.png" \
+           "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/${pkgname}.png" 2>/dev/null || true
+    done
+    install -d "${pkgdir}/usr/share/icons/hicolor/scalable/apps"
+    cp "${pkgdir}/opt/${pkgname}/assets/icons/mosslanding.svg" \
+       "${pkgdir}/usr/share/icons/hicolor/scalable/apps/${pkgname}.svg" 2>/dev/null || true
+
+    # App data directory
+    install -d "${pkgdir}/opt/${pkgname}/models"
+}
