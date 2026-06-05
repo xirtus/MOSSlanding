@@ -12,12 +12,10 @@ os.environ.setdefault("HF_HUB_CACHE",          str(_MODELS_HUB))
 os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(_MODELS_HUB))
 os.environ.setdefault("TRANSFORMERS_CACHE",     str(_MODELS_HUB))
 
-# If the default model is already cached, disable all HF network traffic.
-# This prevents broken-pipe errors after sleep/wake and makes startup instant.
+# If the default model is already cached, prefer local-only loads to avoid
+# broken-pipe errors after sleep/wake. Downloads will temporarily bypass this.
 _DEFAULT_MODEL_SLUG = "models--OpenMOSS-Team--MOSS-TTS-Local-Transformer"
-if (_MODELS_HUB / _DEFAULT_MODEL_SLUG).exists():
-    os.environ.setdefault("HF_HUB_OFFLINE",      "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+_DEFAULT_MODEL_CACHED = (_MODELS_HUB / _DEFAULT_MODEL_SLUG).exists()
 
 import asyncio
 import gc
@@ -25,6 +23,7 @@ import importlib.util
 import io
 import json
 import logging
+import subprocess
 import threading
 import time
 import uuid
@@ -74,11 +73,28 @@ if MOSS_TTS_REPO.exists() and str(MOSS_TTS_REPO) not in sys.path:
     sys.path.insert(0, str(MOSS_TTS_REPO))
 
 # ── active model ─────────────────────────────────────────────────────────────
-MODEL_ID = os.environ.get(
-    "MOSS_TTS_MODEL_ID",
-    AVAILABLE_MODELS["moss-local-1.7b"]["id"]
-)
+_DEFAULT_MODEL_KEY = "moss-local-1.7b"
+_active_model_key = _DEFAULT_MODEL_KEY
+_active_model_id = AVAILABLE_MODELS[_active_model_key]["id"]
 INACTIVITY_TIMEOUT = int(os.environ.get("MOSS_TTS_INACTIVITY_TIMEOUT", "0"))  # seconds; 0 = never auto-unload
+
+def get_active_model_id() -> str:
+    return _active_model_id
+
+def get_active_model_key() -> str:
+    return _active_model_key
+
+
+def is_model_cached(model_id: str) -> bool:
+    """Check if model is fully cached (has valid snapshot with files)."""
+    slug = "models--" + model_id.replace("/", "--")
+    snapshots_dir = MODELS_DIR / "hub" / slug / "snapshots"
+    if not snapshots_dir.exists():
+        return False
+    for snap in snapshots_dir.iterdir():
+        if snap.is_dir() and any(snap.iterdir()):
+            return True
+    return False
 
 # ── device setup ────────────────────────────────────────────────────────────
 def get_device() -> torch.device:
@@ -95,6 +111,37 @@ def get_dtype(device: torch.device) -> torch.dtype:
     if device.type == "cuda":
         return torch.bfloat16
     return torch.float32
+
+
+def detect_chip() -> str:
+    """Detect Apple Silicon chip family from the Mac model identifier."""
+    try:
+        model = subprocess.run(["sysctl", "-n", "hw.model"],
+                               capture_output=True, text=True).stdout.strip()
+    except Exception:
+        return "Apple Silicon"
+
+    # Map Mac model identifiers to chip families
+    chip_map = {
+        "Mac17": "M5",
+        "Mac16": "M4",
+        "Mac15": "M3",
+        "Mac14": "M2",
+        "Mac13": "M2",
+        "Mac12": "M1",
+        "Mac11": "M1",
+        "Mac10": "M1",
+        "Mac9":  "M1",
+    }
+    for prefix, chip in chip_map.items():
+        if model.startswith(prefix):
+            # Detect Pro/Max/Ultra variants
+            variants = {"Pro", "Max", "Ultra"}
+            for v in variants:
+                if v in model:
+                    return f"{chip} {v}"
+            return chip
+    return model  # fallback: raw model identifier
 
 
 # ── model state ─────────────────────────────────────────────────────────────
@@ -135,32 +182,108 @@ def _load_model():
         _state.device = device
         _state.dtype = dtype
 
-        log.info(f"Loading model {MODEL_ID} on {device} ({dtype})")
+        model_id = get_active_model_id()
+        needs_download = not is_model_cached(model_id)
+        action = "Downloading" if needs_download else "Loading"
+        slug = "models--" + model_id.replace("/", "--")  # for progress monitor
+        log.info(f"{action} model {model_id} on {device} ({dtype})")
         _state.progress = 5
-        _state.progress_msg = f"Loading tokenizer from {MODEL_ID}..."
+        _state.progress_msg = f"{action} tokenizer from {model_id}..."
 
         # Disable CUDA-specific backends when not on CUDA
         if device.type != "cuda":
             torch.backends.cuda.enable_cudnn_sdp(False)
 
         def _load_pretrained(cls, model_id, **kwargs):
-            """Load model — HF_HUB_OFFLINE=1 is set at top of file when cached."""
+            """Load model. Temporarily enables online if model not cached."""
             hub_dir = MODELS_DIR / "hub"
             slug = "models--" + model_id.replace("/", "--")
-            offline = (hub_dir / slug).exists()
-            log.info(f"{'Local cache' if offline else 'Downloading'}: {model_id}")
-            return cls.from_pretrained(model_id, **kwargs)
+            is_cached = is_model_cached(model_id)
+            _prev_offline = os.environ.get("HF_HUB_OFFLINE")
+            _prev_trans = os.environ.get("TRANSFORMERS_OFFLINE")
+            if is_cached:
+                # Force local-only to avoid network hangs (sleep/wake broken pipe)
+                os.environ["HF_HUB_OFFLINE"] = "1"
+                os.environ["TRANSFORMERS_OFFLINE"] = "1"
+            else:
+                # Enable online access for downloading
+                os.environ["HF_HUB_OFFLINE"] = "0"
+                os.environ["TRANSFORMERS_OFFLINE"] = "0"
+            try:
+                log.info(f"{'Local cache' if is_cached else 'Downloading'}: {model_id}")
+                return cls.from_pretrained(model_id, **kwargs)
+            finally:
+                # Restore previous env state
+                if _prev_offline is not None:
+                    os.environ["HF_HUB_OFFLINE"] = _prev_offline
+                elif "HF_HUB_OFFLINE" in os.environ:
+                    del os.environ["HF_HUB_OFFLINE"]
+                if _prev_trans is not None:
+                    os.environ["TRANSFORMERS_OFFLINE"] = _prev_trans
+                elif "TRANSFORMERS_OFFLINE" in os.environ:
+                    del os.environ["TRANSFORMERS_OFFLINE"]
 
         processor = _load_pretrained(
-            AutoProcessor, MODEL_ID,
+            AutoProcessor, get_active_model_id(),
             trust_remote_code=True,
         )
         _state.progress = 30
-        _state.progress_msg = "Tokenizer ready. Loading model weights..."
+        _state.progress_msg = f"Tokenizer ready. {action} model weights..."
+
+        # ── Loading progress monitor (works for both cached & downloading) ─
+        _progress_stop = threading.Event()
+        _model_size_gb = 0
+        for _k, _info in AVAILABLE_MODELS.items():
+            if _info["id"] == model_id:
+                _model_size_gb = _info["size_gb"]
+                break
+        _progress_start = time.monotonic()
+
+        def _monitor_progress():
+            """Track loading/download progress by polling disk cache size."""
+            blobs_dir = MODELS_DIR / "hub" / slug / "blobs"
+            last_total = 0
+            while not _progress_stop.is_set():
+                try:
+                    total = sum(
+                        f.stat().st_size for f in blobs_dir.rglob("*")
+                        if f.is_file()
+                    ) if blobs_dir.exists() else 0
+                    if needs_download and _model_size_gb > 0:
+                        # Map download progress 30→85%
+                        est_bytes = int(_model_size_gb * 1e9)
+                        pct = min(85, 30 + int(55 * total / est_bytes))
+                        _state.progress = pct
+                        mb = total / 1e6
+                        _state.progress_msg = (
+                            f"Downloading weights ({mb:.0f} MB / ~{_model_size_gb:.1f} GB)…"
+                        )
+                    else:
+                        # Cached model: advance smoothly toward 85% over time
+                        elapsed = time.monotonic() - _progress_start
+                        # Estimate: ~6s/GB for MPS fp16 loading from SSD (conservative)
+                        est_seconds = max(15, _model_size_gb * 6) if _model_size_gb > 0 else 15
+                        smooth_pct = min(85, 30 + int(55 * elapsed / est_seconds))
+                        _state.progress = max(_state.progress, smooth_pct)
+                        if total > last_total:
+                            mb = total / 1e6
+                            _state.progress_msg = (
+                                f"Loading weights ({mb:.0f} MB loaded)…"
+                            )
+                        else:
+                            _state.progress_msg = "Loading model weights into memory…"
+                        last_total = total
+                except Exception:
+                    pass
+                _progress_stop.wait(2)
 
         processor.audio_tokenizer = processor.audio_tokenizer.to(device)
         _state.progress = 40
         _state.progress_msg = "Audio tokenizer loaded. Loading LM weights..."
+
+        # Start progress monitor AFTER setting progress to 40 (avoid race)
+        _monitor_thread = threading.Thread(target=_monitor_progress, daemon=True)
+        _monitor_thread.start()
 
         attn_impl = "eager"  # most compatible across devices
         if device.type == "cuda" and importlib.util.find_spec("flash_attn"):
@@ -170,7 +293,7 @@ def _load_model():
                     attn_impl = "flash_attention_2"
 
         model = _load_pretrained(
-            AutoModel, MODEL_ID,
+            AutoModel, get_active_model_id(),
             trust_remote_code=True,
             attn_implementation=attn_impl,
             torch_dtype=dtype,
@@ -178,7 +301,7 @@ def _load_model():
         model.eval()
 
         _state.progress = 90
-        _state.progress_msg = "Warming up..."
+        _state.progress_msg = "Warming up — JIT compiling kernels…"
 
         # Warm-up inference to JIT-compile kernels
         try:
@@ -190,6 +313,9 @@ def _load_model():
                 model.generate(warm_ids, attention_mask=warm_mask, max_new_tokens=64)
         except Exception as e:
             log.warning(f"Warm-up failed (non-fatal): {e}")
+
+        _state.progress = 95
+        _state.progress_msg = "Warm-up complete. Finalizing…"
 
         with _state.lock:
             _state.model = model
@@ -209,6 +335,10 @@ def _load_model():
             _state.progress = 0
             _state.model = None
             _state.processor = None
+
+    finally:
+        # Stop progress monitor
+        _progress_stop.set()
 
 
 def ensure_loaded():
@@ -283,6 +413,7 @@ class StatusResponse(BaseModel):
     message: str
     model_id: str
     device: str
+    chip: str
     models_dir: str
     error: Optional[str] = None
 
@@ -291,12 +422,14 @@ class StatusResponse(BaseModel):
 @app.get("/api/status", response_model=StatusResponse)
 def get_status():
     device_str = str(_state.device) if _state.device else "unknown"
+    chip_str = detect_chip()
     return StatusResponse(
         status=_state.status,
         progress=_state.progress,
         message=_state.progress_msg,
-        model_id=MODEL_ID,
+        model_id=get_active_model_id(),
         device=device_str,
+        chip=chip_str,
         models_dir=str(MODELS_DIR),
         error=_state.error_msg or None,
     )
@@ -309,7 +442,7 @@ def list_models():
     result = []
     for key, info in AVAILABLE_MODELS.items():
         hf_slug = "models--" + info["id"].replace("/", "--")
-        downloaded = (hub_dir / hf_slug).exists()
+        downloaded = is_model_cached(info["id"])
         result.append({
             "key":         key,
             "id":          info["id"],
@@ -317,7 +450,7 @@ def list_models():
             "size_gb":     info["size_gb"],
             "recommended": info["recommended"],
             "downloaded":  downloaded,
-            "active":      info["id"] == MODEL_ID,
+            "active":      info["id"] == get_active_model_id(),
         })
     return {"models": result, "models_dir": str(MODELS_DIR)}
 
@@ -343,6 +476,52 @@ def manual_unload():
         torch.cuda.empty_cache()
     log.info("Model unloaded via /api/unload")
     return {"ok": True, "message": "Model unloaded."}
+
+
+class SwitchModelRequest(BaseModel):
+    model_key: str
+
+
+@app.post("/api/switch-model")
+def switch_model(req: SwitchModelRequest):
+    """Switch the active model. Body: {"model_key": "moss-v1.5-8b"}"""
+    global _active_model_key, _active_model_id
+    model_key = req.model_key
+
+    if not model_key or model_key not in AVAILABLE_MODELS:
+        valid = ", ".join(AVAILABLE_MODELS.keys())
+        raise HTTPException(400, f"Invalid model key. Choose from: {valid}")
+
+    if model_key == _active_model_key and _state.status == "ready":
+        return {"ok": True, "message": f"Model '{model_key}' is already active."}
+
+    # Check if model is cached; if not, allow online download
+    new_id = AVAILABLE_MODELS[model_key]["id"]
+    slug = "models--" + new_id.replace("/", "--")
+    is_cached = is_model_cached(new_id)
+
+    # Unload current model
+    with _state.lock:
+        if _state.is_loaded():
+            _state.model = None
+            _state.processor = None
+        _state.status = "idle"
+        _state.progress = 0
+        _state.progress_msg = ""
+        _state.error_msg = ""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # Switch the active model
+    _active_model_key = model_key
+    _active_model_id = new_id
+
+    # Trigger load — _load_pretrained handles online/offline per-call
+    ensure_loaded()
+
+    msg = "Switching" if is_cached else "Downloading & switching"
+    return {"ok": True, "message": f"{msg} to {model_key} ({new_id})."}
 
 
 @app.post("/api/synthesize")

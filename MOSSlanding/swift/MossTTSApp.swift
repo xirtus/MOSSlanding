@@ -1,10 +1,21 @@
 import AppKit
 import WebKit
 import Foundation
+import UniformTypeIdentifiers
+
+// MARK: - Script message proxy (avoids retain cycle with WKUserContentController)
+
+private class ScriptMessageProxy: NSObject, WKScriptMessageHandler {
+    weak var delegate: AppDelegate?
+    init(_ delegate: AppDelegate) { self.delegate = delegate }
+    func userContentController(_ c: WKUserContentController, didReceive msg: WKScriptMessage) {
+        delegate?.handleScriptMessage(msg)
+    }
+}
 
 // MARK: - AppDelegate
 
-class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
 
     private var statusItem: NSStatusItem?
     private var window: NSWindow?
@@ -12,6 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var serverProcess: Process?
     private var serverReady = false
     private var serverPort = 8765
+    private var scriptProxy: ScriptMessageProxy?
 
     // Base URL for the local server
     private var serverURL: URL { URL(string: "http://127.0.0.1:\(serverPort)")! }
@@ -21,7 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)   // no dock icon
 
-        setupMainMenu()
         setupStatusItem()
         setupWindow()
         startServer()
@@ -29,45 +40,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         serverProcess?.terminate()
-    }
-
-    // MARK: Main menu (required for Cmd+V/Cmd+C in WKWebView)
-
-    private func setupMainMenu() {
-        let mainMenu = NSMenu()
-
-        // App menu
-        let appMenuItem = NSMenuItem()
-        let appMenu = NSMenu()
-        appMenu.addItem(NSMenuItem(title: "About MOSSlanding", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
-        appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit MOSSlanding", action: #selector(quit), keyEquivalent: "q"))
-        appMenuItem.submenu = appMenu
-        mainMenu.addItem(appMenuItem)
-
-        // Edit menu — critical for WKWebView paste/copy/cut/selectAll
-        let editMenuItem = NSMenuItem()
-        let editMenu = NSMenu(title: "Edit")
-        editMenu.addItem(NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z"))
-        editMenu.addItem(NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z"))
-        editMenu.addItem(NSMenuItem.separator())
-        editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
-        editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
-        editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
-        editMenu.addItem(NSMenuItem(title: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "\u{8}"))
-        editMenu.addItem(NSMenuItem.separator())
-        editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
-        editMenuItem.submenu = editMenu
-        mainMenu.addItem(editMenuItem)
-
-        // Window menu
-        let windowMenuItem = NSMenuItem()
-        let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(NSMenuItem(title: "Show/Hide", action: #selector(toggleWindow), keyEquivalent: ""))
-        windowMenuItem.submenu = windowMenu
-        mainMenu.addItem(windowMenuItem)
-
-        NSApp.mainMenu = mainMenu
     }
 
     // MARK: Status bar
@@ -124,9 +96,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private func setupWindow() {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        scriptProxy = ScriptMessageProxy(self)
+        config.userContentController.add(scriptProxy!, name: "pickVoiceFile")
 
         let webV = WKWebView(frame: .zero, configuration: config)
         webV.navigationDelegate = self
+        webV.uiDelegate = self
         webV.allowsMagnification = false
         self.webView = webV
 
@@ -413,6 +388,107 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         NSLog("WebView navigation error: %@", error.localizedDescription)
+    }
+
+    // MARK: WKUIDelegate — handles <input type="file"> activated from HTML
+
+    func webView(_ webView: WKWebView,
+                 runOpenPanelWith parameters: WKOpenPanelParameters,
+                 initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping ([URL]?) -> Void) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.allowedContentTypes = [.audio]
+        if let win = webView.window {
+            panel.beginSheetModal(for: win) { response in
+                completionHandler(response == .OK ? panel.urls : nil)
+            }
+        } else {
+            panel.begin { response in completionHandler(response == .OK ? panel.urls : nil) }
+        }
+    }
+
+    // MARK: Script message handler — native file picker for drop zone click
+
+    func handleScriptMessage(_ message: WKScriptMessage) {
+        if message.name == "pickVoiceFile" {
+            DispatchQueue.main.async { self.openVoiceFilePicker() }
+        }
+    }
+
+    private func openVoiceFilePicker() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a voice sample (WAV, MP3, M4A, FLAC)"
+        panel.allowedContentTypes = [.audio]
+        guard let win = window else { return }
+        panel.beginSheetModal(for: win) { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            self?.uploadVoiceFile(url)
+        }
+    }
+
+    private func uploadVoiceFile(_ url: URL) {
+        guard let data = try? Data(contentsOf: url) else {
+            NSLog("Could not read voice file: %@", url.path)
+            DispatchQueue.main.async {
+                self.webView?.evaluateJavaScript("toast('Could not read file', 'error')", completionHandler: nil)
+            }
+            return
+        }
+
+        let filename = url.lastPathComponent
+        let stem = url.deletingPathExtension().lastPathComponent
+        let mime = voiceMimeType(for: url.pathExtension)
+        let uploadURL = serverURL.appendingPathComponent("/api/voices/upload")
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "POST"
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        let crlf = "\r\n"
+        func append(_ s: String) { body.append(s.data(using: .utf8)!) }
+        append("--\(boundary)\(crlf)")
+        append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\(crlf)")
+        append("Content-Type: \(mime)\(crlf)\(crlf)")
+        body.append(data)
+        append(crlf)
+        append("--\(boundary)\(crlf)")
+        append("Content-Disposition: form-data; name=\"name\"\(crlf)\(crlf)")
+        append(stem)
+        append(crlf)
+        append("--\(boundary)--\(crlf)")
+        request.httpBody = body
+
+        URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
+            DispatchQueue.main.async {
+                if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                    let js = "loadVoices(); toast('Voice \\'\(stem)\\' saved')"
+                    self?.webView?.evaluateJavaScript(js, completionHandler: nil)
+                } else {
+                    let msg = error?.localizedDescription ?? "Unknown error"
+                    NSLog("Voice upload failed: %@", msg)
+                    self?.webView?.evaluateJavaScript("toast('Upload failed: \(msg)', 'error')", completionHandler: nil)
+                }
+            }
+        }.resume()
+    }
+
+    private func voiceMimeType(for ext: String) -> String {
+        switch ext.lowercased() {
+        case "wav":  return "audio/wav"
+        case "mp3":  return "audio/mpeg"
+        case "m4a":  return "audio/mp4"
+        case "flac": return "audio/flac"
+        case "ogg":  return "audio/ogg"
+        default:     return "audio/octet-stream"
+        }
     }
 }
 

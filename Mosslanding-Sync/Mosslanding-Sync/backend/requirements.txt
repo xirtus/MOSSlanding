@@ -1,0 +1,15 @@
+torch
+torchaudio
+transformers==5.0.0
+safetensors
+numpy
+scipy
+soundfile
+librosa
+tqdm
+pyyaml
+einops
+tiktoken
+psutil
+packaging
+huggingface_hub
