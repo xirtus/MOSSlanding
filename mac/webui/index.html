@@ -262,6 +262,11 @@
         <div class="mode-btn" onclick="setMode('continue',this)">Continuation</div>
       </div>
       <div id="mode-hint" style="font-size:11px;color:var(--text-muted)">Generate speech without a reference voice.</div>
+      <div id="voice-indicator" style="display:none; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; background:rgba(10,132,255,0.08); border:1px solid rgba(10,132,255,0.25); border-radius:8px;">
+        <span style="font-size:16px">🎤</span>
+        <span id="voice-indicator-name" style="font-size:13px; font-weight:600; color:var(--text); flex:1"></span>
+        <button class="btn-secondary btn-sm" onclick="clearVoice()" style="padding:3px 9px; font-size:11px">✕ Clear</button>
+      </div>
     </div>
   </div>
 
@@ -810,7 +815,13 @@ function renderVoices(voices) {
     chip.onclick = () => {
       selectedVoice = selectedVoice === v.filename ? null : v.filename;
       document.querySelectorAll(".voice-chip").forEach(c => c.classList.remove("active"));
-      if (selectedVoice) chip.classList.add("active");
+      if (selectedVoice) {
+        chip.classList.add("active");
+        updateVoiceIndicator(v.name);
+        if (currentMode === "direct") setMode("clone", document.querySelectorAll(".mode-btn")[1]);
+      } else {
+        updateVoiceIndicator(null);
+      }
     };
     list.appendChild(chip);
   });
@@ -895,6 +906,28 @@ async function switchModel(modelKey) {
 async function loadModel() {
   await fetch("/api/load", { method: "POST" });
   pollStatus();
+}
+
+// ── voice indicator ──────────────────────────────────────────────────────
+function updateVoiceIndicator(name) {
+  const el = document.getElementById("voice-indicator");
+  const nameEl = document.getElementById("voice-indicator-name");
+  if (name) {
+    el.style.display = "flex";
+    nameEl.textContent = name;
+    document.getElementById("mode-hint").textContent = `Cloning voice: "${name}". Speak text in this voice.`;
+  } else {
+    el.style.display = "none";
+    nameEl.textContent = "";
+    document.getElementById("mode-hint").textContent = MODE_HINTS[currentMode];
+  }
+}
+
+function clearVoice() {
+  selectedVoice = null;
+  document.querySelectorAll(".voice-chip").forEach(c => c.classList.remove("active"));
+  updateVoiceIndicator(null);
+  loadVoices(); // refresh voice list to clear active state
 }
 
 // ── utils ─────────────────────────────────────────────────────────────────
