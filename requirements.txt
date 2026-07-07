@@ -1,0 +1,30 @@
+# Core ML
+torch==2.9.1+cu128
+torchaudio==2.9.1+cu128
+transformers==5.0.0
+accelerate>=1.10.0
+
+# Attention optimization
+flash-attn>=2.7.0
+
+# Audio processing
+librosa>=0.11.0
+soundfile>=0.12.0
+scipy>=1.14.0
+
+# Data
+safetensors>=0.6.0
+numpy>=2.0.0
+orjson>=3.11.0
+PyYAML>=6.0
+
+# Misc
+einops>=0.8.0
+tiktoken>=0.7.0
+tqdm>=4.67.0
+psutil>=5.9.0
+packaging>=24.0
+ninja>=1.11.0
+
+# Desktop app
+pydantic>=2.0.0
