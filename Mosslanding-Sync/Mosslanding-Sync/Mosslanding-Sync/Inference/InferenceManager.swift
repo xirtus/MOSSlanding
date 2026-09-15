@@ -1,5 +1,6 @@
 import Foundation
 import Hub
+import OSLog
 import Tokenizers
 
 /// One line from the Python subprocess's stdout. Decoded loosely because each
@@ -43,12 +44,124 @@ actor InferenceManager {
     private var mossConfig: MossModelConfig?
     private var tokenizerLoadTask: Task<Void, Never>?
 
+    /// When true the MLX native engine is preferred over the Python subprocess.
+    private var useMLX: Bool = false
+
     private init() {}
 
-    func currentStatus() -> InferenceStatus { status }
+    /// Called when the system is under memory pressure; unloads MLX model to free
+    /// unified memory. The UI can call `start()` again when memory is available.
+    func handleMemoryPressure() {
+        guard useMLX else { return }
+        logger.warning("Memory pressure — unloading MLX model")
+        Task { await MLXInferenceEngine.shared.unloadModel() }
+        useMLX = false
+        status.status = "idle"
+        status.message = "Model unloaded (memory pressure)"
+        status.progress = 0
+        status.error = ""
+    }
+
+    func currentStatus() async -> InferenceStatus {
+        if useMLX {
+            await syncMLXStatus()
+        }
+        return status
+    }
+
+    /// Pull the latest state from the MLX engine into `status`.
+    private func syncMLXStatus() async {
+        let s = await MLXInferenceEngine.shared.getState()
+        switch s {
+        case .unloaded:
+            status.status = "idle"
+            status.progress = 0
+            status.message = ""
+            status.error = ""
+        case .loading(let progress, let message):
+            status.status = "loading"
+            status.progress = progress
+            status.message = message
+            status.error = ""
+        case .ready:
+            status.status = "ready"
+            status.progress = 100
+            status.message = "MLX model ready on Apple Silicon GPU"
+            status.device = "mps"
+            status.modelId = "OpenMOSS-Team/MOSS-TTS-Local-Transformer"
+            status.error = ""
+        case .generating:
+            status.status = "generating"
+            status.progress = 100
+            status.message = "Generating speech..."
+            status.error = ""
+        case .error(let msg):
+            status.status = "error"
+            status.message = ""
+            status.error = msg
+        }
+    }
 
     func start() {
-        guard process == nil else { return }
+        guard process == nil, !useMLX else { return }
+
+        // Prefer MLX when the model snapshot exists locally.
+        if let snapshot = try? mossSnapshotDirectory(),
+           FileManager.default.fileExists(atPath: snapshot.path) {
+            useMLX = true
+            status.status = "starting"
+            status.progress = 0
+            status.message = "Starting MLX engine..."
+            status.error = ""
+
+            Task {
+                do {
+                    try await MLXInferenceEngine.shared.loadModel(snapshotDir: snapshot)
+                    await onMLXReady()
+                } catch {
+                    logger.error("MLX load failed, falling back to Python: \(error.localizedDescription, privacy: .public)")
+                    await onMLXFailed(error)
+                }
+            }
+
+            // Eager-load tokenizer in parallel.
+            if tokenizerLoadTask == nil {
+                tokenizerLoadTask = Task { [weak self] in
+                    do {
+                        try await self?.loadTokenizer()
+                    } catch {
+                        logger.warning("Eager tokenizer load failed: \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
+            return
+        }
+
+        startPython()
+    }
+
+    /// Called when the MLX engine finishes loading successfully.
+    private func onMLXReady() async {
+        status.status = "ready"
+        status.progress = 100
+        status.message = "MLX model ready on Apple Silicon GPU"
+        status.device = "mps"
+        status.modelId = "OpenMOSS-Team/MOSS-TTS-Local-Transformer"
+        status.error = ""
+        useMLX = true
+        logger.info("MLX inference engine ready")
+    }
+
+    /// Called when the MLX engine fails to load; falls back to Python.
+    private func onMLXFailed(_ error: Error) async {
+        useMLX = false
+        status.status = "error"
+        status.error = "MLX load failed: \(error.localizedDescription)"
+        startPython()
+    }
+
+    /// Legacy Python-subprocess start (fallback).
+    private func startPython() {
         guard let (python, script) = findPythonAndScript() else {
             logger.error("Cannot find python or inference.py")
             status.status = "error"
@@ -126,6 +239,12 @@ actor InferenceManager {
         for cont in outstanding {
             cont.resume(throwing: InferenceError.notRunning)
         }
+        // MLX cleanup (fire-and-forget — actor will serialise)
+        if useMLX {
+            Task { await MLXInferenceEngine.shared.unloadModel() }
+            useMLX = false
+        }
+        // Python cleanup
         if let stdin {
             try? sendCommand(["op": "shutdown"], using: stdin)
         }
@@ -138,24 +257,71 @@ actor InferenceManager {
         tokenizerLoadTask = nil
     }
 
-    /// Restarts the subprocess if it died (e.g. broken stdin pipe after wake).
-    func restartIfNeeded() {
+    /// Restarts the backend if it died (e.g. broken stdin pipe after wake).
+    func restartIfNeeded() async {
+        if useMLX {
+            // Check MLX engine health
+            let mlxState = await MLXInferenceEngine.shared.getState()
+            switch mlxState {
+            case .ready, .generating, .loading:
+                return  // healthy
+            case .unloaded, .error:
+                terminate()
+                start()
+            }
+            return
+        }
+        // Python path
         if let process, process.isRunning { return }
         terminate()
         start()
     }
 
     func triggerLoad() {
+        if useMLX {
+            Task {
+                do {
+                    let snapshot = try mossSnapshotDirectory()
+                    try await MLXInferenceEngine.shared.loadModel(snapshotDir: snapshot)
+                    await onMLXReady()
+                } catch {
+                    logger.error("MLX triggerLoad failed: \(error.localizedDescription, privacy: .public)")
+                    await onMLXFailed(error)
+                }
+            }
+            return
+        }
         guard let stdin else { return }
         try? sendCommand(["op": "load"], using: stdin)
     }
 
     func triggerUnload() {
+        if useMLX {
+            Task { await self.onMLXUnloaded() }
+            return
+        }
         guard let stdin else { return }
         try? sendCommand(["op": "unload"], using: stdin)
     }
 
+    private func onMLXUnloaded() async {
+        await MLXInferenceEngine.shared.unloadModel()
+        useMLX = false
+        status = .initial
+    }
+
     func synthesize(_ params: [String: any Sendable]) async throws -> SynthResult {
+        // ── MLX path (direct mode only) ──
+        if useMLX, shouldTokenizeInSwift(payload: params) {
+            let mlxState = await MLXInferenceEngine.shared.getState()
+            if case .ready = mlxState {
+                return try await synthesizeMLX(params)
+            }
+            // If MLX is loading/generating/error, fall through to Python.
+            logger.warning("MLX engine not ready (state: \(mlxState.status)), falling back to Python")
+        }
+
+        // ── Python fallback ──
         guard let stdin, process?.isRunning == true else {
             throw InferenceError.notRunning
         }
@@ -189,6 +355,90 @@ actor InferenceManager {
                 cont.resume(throwing: error)
             }
         }
+    }
+
+    /// Synthesize using the native MLX engine (direct mode only).
+    private func synthesizeMLX(_ params: [String: any Sendable]) async throws -> SynthResult {
+        try await loadTokenizer()
+        guard let tok = tokenizer,
+              let cfg = await MLXInferenceEngine.shared.getConfig() else {
+            throw InferenceError.ioFailure("tokenizer or model config not available")
+        }
+
+        let text = params["text"] as? String ?? ""
+        let language = params["language"] as? String
+        let durationTokens = params["duration_tokens"] as? Int
+
+        // Tokenize
+        let content = buildUserInstContent(text: text, language: language, tokens: durationTokens)
+        let messages: [[String: any Sendable]] = [["role": "user", "content": content]]
+        let textTokens = try tok.applyChatTemplate(messages: messages)
+
+        // Build input tensor
+        let inputIDs = buildInputIDs(textTokens: textTokens, config: cfg)
+
+        // Build generation config from user params
+        let maxNewTokens = params["max_new_tokens"] as? Int ?? 4096
+        let quality = params["quality"] as? Int ?? 32
+        let temperature = Float(params["temperature"] as? Double ?? 1.5)
+        let topP = Float(params["top_p"] as? Double ?? 1.0)
+        let topK = params["top_k"] as? Int ?? 50
+        let repetitionPenalty = Float(params["repetition_penalty"] as? Double ?? 1.0)
+
+        let nVQ = max(1, min(cfg.nVQ, quality))
+        let textLayerCfg = GenerationLayerConfig(
+            temperature: temperature, topP: topP, topK: topK, repetitionPenalty: repetitionPenalty
+        )
+        let audioLayerCfg = GenerationLayerConfig(
+            temperature: temperature, topP: topP, topK: topK, repetitionPenalty: repetitionPenalty
+        )
+        var layerCfgs = [textLayerCfg]
+        for _ in 1..<(1 + nVQ) { layerCfgs.append(audioLayerCfg) }
+
+        let genConfig = MossGenerationConfig(
+            maxNewTokens: maxNewTokens,
+            eosTokenId: cfg.audioEndTokenId,
+            nVQForInference: nVQ,
+            layerConfigs: layerCfgs
+        )
+
+        // Run synthesis
+        status.status = "generating"
+        status.message = "Generating speech with MLX..."
+
+        let audioResult: AudioResult
+        do {
+            audioResult = try await MLXInferenceEngine.shared.synthesize(
+                inputIDs: inputIDs,
+                attentionMask: nil,
+                generationConfig: genConfig
+            )
+        } catch {
+            status.status = "error"
+            status.error = error.localizedDescription
+            throw error
+        }
+
+        // Convert PCM to WAV and save
+        let wav = pcmFloat32ToWAV(pcm: audioResult.pcmData, sampleRate: audioResult.sampleRate)
+
+        let outDir = AppPaths.outputDirectory
+        try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let filename = "mosslanding_\(UUID().uuidString.prefix(8).lowercased()).wav"
+        let savedURL = outDir.appendingPathComponent(filename)
+        try wav.write(to: savedURL)
+
+        status.status = "ready"
+        status.message = ""
+        status.error = ""
+
+        return SynthResult(
+            wavData: wav,
+            filename: filename,
+            savedPath: savedURL.path,
+            sampleRate: audioResult.sampleRate,
+            duration: audioResult.duration
+        )
     }
 
     /// Direct mode is explicit `mode == "direct"`, or no voice reference at

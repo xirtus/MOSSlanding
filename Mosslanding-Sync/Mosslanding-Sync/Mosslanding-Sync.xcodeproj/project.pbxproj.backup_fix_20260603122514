@@ -7,22 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		079FF4FD2FD12FB7000B2B49 /* inference.py in Resources */ = {isa = PBXBuildFile; fileRef = 079FF4FC2FD12FB7000B2B49 /* inference.py */; };
-		1D3CED2843A3465CAB93C65F /* codec_bridge.py in Resources */ = {isa = PBXBuildFile; fileRef = 67221D46951A48E1A34AC068 /* codec_bridge.py */; };
-		079FF5022FD14309000B2B49 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 079FF5012FD14309000B2B49 /* Hub */; };
-		079FF5042FD14309000B2B49 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 079FF5032FD14309000B2B49 /* Tokenizers */; };
-		079FF5062FD14309000B2B49 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = 079FF5052FD14309000B2B49 /* Transformers */; };
-		07AE02002FD2A00000EEA08E /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = 07AE02012FD2A00000EEA08E /* MLX */; };
-		07AE02022FD2A00000EEA08E /* MLXFast in Frameworks */ = {isa = PBXBuildFile; productRef = 07AE02032FD2A00000EEA08E /* MLXFast */; };
-		07AE02042FD2A00000EEA08E /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = 07AE02052FD2A00000EEA08E /* MLXNN */; };
-		07AE02062FD2A00000EEA08E /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = 07AE02072FD2A00000EEA08E /* MLXRandom */; };
 		07EA7C6B2FD0ABBC004ACEE4 /* venv in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C682FD0ABBC004ACEE4 /* venv */; };
 		07EA7C6C2FD0ABBC004ACEE4 /* MOSSlanding.app in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C602FD0ABBC004ACEE4 /* MOSSlanding.app */; };
+		07EA7C6D2FD0ABBC004ACEE4 /* server.py in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C5A2FD0ABBC004ACEE4 /* server.py */; };
+		07EA7C6E2FD0ABBC004ACEE4 /* make_dmg_bg.py in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C622FD0ABBC004ACEE4 /* make_dmg_bg.py */; };
+		07EA7C6F2FD0ABBC004ACEE4 /* install_launch_agent.sh in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C612FD0ABBC004ACEE4 /* install_launch_agent.sh */; };
 		07EA7C702FD0ABBC004ACEE4 /* dist.sh in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C5D2FD0ABBC004ACEE4 /* dist.sh */; };
+		07EA7C712FD0ABBC004ACEE4 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C692FD0ABBC004ACEE4 /* index.html */; };
 		07EA7C722FD0ABBC004ACEE4 /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C592FD0ABBC004ACEE4 /* requirements.txt */; };
 		07EA7C732FD0ABBC004ACEE4 /* setup.sh in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C652FD0ABBC004ACEE4 /* setup.sh */; };
 		07EA7C742FD0ABBC004ACEE4 /* build.sh in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C5C2FD0ABBC004ACEE4 /* build.sh */; };
+		07EA7C752FD0ABBC004ACEE4 /* make_icon.py in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C632FD0ABBC004ACEE4 /* make_icon.py */; };
 		07EA7C762FD0ABBC004ACEE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07EA7C5E2FD0ABBC004ACEE4 /* Assets.xcassets */; };
+		07EA7C772FD0ABBC004ACEE4 /* MossTTSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07EA7C662FD0ABBC004ACEE4 /* MossTTSApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,18 +40,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		079FF4FC2FD12FB7000B2B49 /* inference.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = inference.py; sourceTree = "<group>"; };
-		67221D46951A48E1A34AC068 /* codec_bridge.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = codec_bridge.py; sourceTree = "<group>"; };
 		07EA7C2D2FD0AB72004ACEE4 /* Mosslanding-Sync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Mosslanding-Sync.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		07EA7C3C2FD0AB73004ACEE4 /* Mosslanding-SyncTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Mosslanding-SyncTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		07EA7C462FD0AB73004ACEE4 /* Mosslanding-SyncUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Mosslanding-SyncUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		07EA7C592FD0ABBC004ACEE4 /* requirements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = requirements.txt; sourceTree = "<group>"; };
+		07EA7C5A2FD0ABBC004ACEE4 /* server.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = server.py; sourceTree = "<group>"; };
 		07EA7C5C2FD0ABBC004ACEE4 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build.sh; sourceTree = "<group>"; };
 		07EA7C5D2FD0ABBC004ACEE4 /* dist.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = dist.sh; sourceTree = "<group>"; };
 		07EA7C5E2FD0ABBC004ACEE4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		07EA7C602FD0ABBC004ACEE4 /* MOSSlanding.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = MOSSlanding.app; sourceTree = "<group>"; };
+		07EA7C612FD0ABBC004ACEE4 /* install_launch_agent.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = install_launch_agent.sh; sourceTree = "<group>"; };
+		07EA7C622FD0ABBC004ACEE4 /* make_dmg_bg.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = make_dmg_bg.py; sourceTree = "<group>"; };
+		07EA7C632FD0ABBC004ACEE4 /* make_icon.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = make_icon.py; sourceTree = "<group>"; };
 		07EA7C652FD0ABBC004ACEE4 /* setup.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = setup.sh; sourceTree = "<group>"; };
+		07EA7C662FD0ABBC004ACEE4 /* MossTTSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MossTTSApp.swift; sourceTree = "<group>"; };
 		07EA7C682FD0ABBC004ACEE4 /* venv */ = {isa = PBXFileReference; lastKnownFileType = text; path = venv; sourceTree = "<group>"; };
+		07EA7C692FD0ABBC004ACEE4 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,13 +81,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				079FF5042FD14309000B2B49 /* Tokenizers in Frameworks */,
-				079FF5022FD14309000B2B49 /* Hub in Frameworks */,
-				079FF5062FD14309000B2B49 /* Transformers in Frameworks */,
-				07AE02002FD2A00000EEA08E /* MLX in Frameworks */,
-				07AE02022FD2A00000EEA08E /* MLXFast in Frameworks */,
-				07AE02042FD2A00000EEA08E /* MLXNN in Frameworks */,
-				07AE02062FD2A00000EEA08E /* MLXRandom in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -140,9 +134,8 @@
 		07EA7C5B2FD0ABBC004ACEE4 /* backend */ = {
 			isa = PBXGroup;
 			children = (
-				67221D46951A48E1A34AC068 /* codec_bridge.py */,
 				07EA7C592FD0ABBC004ACEE4 /* requirements.txt */,
-				079FF4FC2FD12FB7000B2B49 /* inference.py */,
+				07EA7C5A2FD0ABBC004ACEE4 /* server.py */,
 			);
 			path = backend;
 			sourceTree = "<group>";
@@ -158,6 +151,9 @@
 		07EA7C642FD0ABBC004ACEE4 /* scripts */ = {
 			isa = PBXGroup;
 			children = (
+				07EA7C612FD0ABBC004ACEE4 /* install_launch_agent.sh */,
+				07EA7C622FD0ABBC004ACEE4 /* make_dmg_bg.py */,
+				07EA7C632FD0ABBC004ACEE4 /* make_icon.py */,
 			);
 			path = scripts;
 			sourceTree = "<group>";
@@ -165,6 +161,7 @@
 		07EA7C672FD0ABBC004ACEE4 /* swift */ = {
 			isa = PBXGroup;
 			children = (
+				07EA7C662FD0ABBC004ACEE4 /* MossTTSApp.swift */,
 			);
 			path = swift;
 			sourceTree = "<group>";
@@ -172,6 +169,7 @@
 		07EA7C6A2FD0ABBC004ACEE4 /* webui */ = {
 			isa = PBXGroup;
 			children = (
+				07EA7C692FD0ABBC004ACEE4 /* index.html */,
 			);
 			path = webui;
 			sourceTree = "<group>";
@@ -196,13 +194,6 @@
 			);
 			name = "Mosslanding-Sync";
 			packageProductDependencies = (
-				079FF5012FD14309000B2B49 /* Hub */,
-				079FF5032FD14309000B2B49 /* Tokenizers */,
-				079FF5052FD14309000B2B49 /* Transformers */,
-				07AE02012FD2A00000EEA08E /* MLX */,
-				07AE02032FD2A00000EEA08E /* MLXFast */,
-				07AE02052FD2A00000EEA08E /* MLXNN */,
-				07AE02072FD2A00000EEA08E /* MLXRandom */,
 			);
 			productName = "Mosslanding-Sync";
 			productReference = 07EA7C2D2FD0AB72004ACEE4 /* Mosslanding-Sync.app */;
@@ -289,9 +280,8 @@
 			packageReferences = (
 				07EA7C792FD0B0F0004ACEE4 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				07EA7C7A2FD0B109004ACEE4 /* XCRemoteSwiftPackageReference "swift-collections" */,
-				079FF5002FD14309000B2B49 /* XCRemoteSwiftPackageReference "swift-transformers" */,
-				0757DD852FD1A08F00F58449 /* XCRemoteSwiftPackageReference "swift-atomics" */,
-				0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */,
+				07EA7C7B2FD0B28E004ACEE4 /* XCRemoteSwiftPackageReference "swift-bridge" */,
+				07EA7C7C2FD0B2B6004ACEE4 /* XCRemoteSwiftPackageReference "pyo3" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 07EA7C2E2FD0AB72004ACEE4 /* Products */;
@@ -312,12 +302,15 @@
 			files = (
 				07EA7C6B2FD0ABBC004ACEE4 /* venv in Resources */,
 				07EA7C6C2FD0ABBC004ACEE4 /* MOSSlanding.app in Resources */,
+				07EA7C6D2FD0ABBC004ACEE4 /* server.py in Resources */,
+				07EA7C6E2FD0ABBC004ACEE4 /* make_dmg_bg.py in Resources */,
+				07EA7C6F2FD0ABBC004ACEE4 /* install_launch_agent.sh in Resources */,
 				07EA7C702FD0ABBC004ACEE4 /* dist.sh in Resources */,
-				079FF4FD2FD12FB7000B2B49 /* inference.py in Resources */,
-				1D3CED2843A3465CAB93C65F /* codec_bridge.py in Resources */,
+				07EA7C712FD0ABBC004ACEE4 /* index.html in Resources */,
 				07EA7C722FD0ABBC004ACEE4 /* requirements.txt in Resources */,
 				07EA7C732FD0ABBC004ACEE4 /* setup.sh in Resources */,
 				07EA7C742FD0ABBC004ACEE4 /* build.sh in Resources */,
+				07EA7C752FD0ABBC004ACEE4 /* make_icon.py in Resources */,
 				07EA7C762FD0ABBC004ACEE4 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -343,6 +336,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				07EA7C772FD0ABBC004ACEE4 /* MossTTSApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -682,30 +676,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.31.4;
-			};
-		};
-		0757DD852FD1A08F00F58449 /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-atomics.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.3.0;
-			};
-		};
-		079FF5002FD14309000B2B49 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/huggingface/swift-transformers";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.3.3;
-			};
-		};
+
 		07EA7C792FD0B0F0004ACEE4 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
@@ -722,45 +693,23 @@
 				minimumVersion = 1.5.1;
 			};
 		};
+		07EA7C7B2FD0B28E004ACEE4 /* XCRemoteSwiftPackageReference "swift-bridge" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chinedufn/swift-bridge";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.59;
+			};
+		};
+		07EA7C7C2FD0B2B6004ACEE4 /* XCRemoteSwiftPackageReference "pyo3" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PyO3/pyo3";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		079FF5012FD14309000B2B49 /* Hub */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 079FF5002FD14309000B2B49 /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Hub;
-		};
-		079FF5032FD14309000B2B49 /* Tokenizers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 079FF5002FD14309000B2B49 /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Tokenizers;
-		};
-		079FF5052FD14309000B2B49 /* Transformers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 079FF5002FD14309000B2B49 /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Transformers;
-		};
-		07AE02012FD2A00000EEA08E /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		07AE02032FD2A00000EEA08E /* MLXFast */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXFast;
-		};
-		07AE02052FD2A00000EEA08E /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		07AE02072FD2A00000EEA08E /* MLXRandom */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0727E7062FD1BD3700DAB3C7 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXRandom;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 07EA7C252FD0AB72004ACEE4 /* Project object */;
 }

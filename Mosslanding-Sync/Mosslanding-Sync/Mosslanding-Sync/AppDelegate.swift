@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import ServiceManagement
 import SwiftUI
 
@@ -9,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    private var memoryPressureSource: DispatchSourceMemoryPressure?
 
     /// Set from `Mosslanding_SyncApp` so we can drive synthesize from menu/etc.
     /// Optional because the delegate finishes launching before the App body
@@ -19,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppPaths.ensureAll()
         setupStatusItem()
         observeSleepWake()
+        observeMemoryPressure()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -124,6 +127,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    // MARK: Memory pressure
+
+    private func observeMemoryPressure() {
+        let source = DispatchSource.makeMemoryPressureSource(
+            eventMask: [.warning, .critical]
+        )
+        source.setEventHandler { [weak self] in
+            Task { await InferenceManager.shared.handleMemoryPressure() }
+        }
+        source.activate()
+        memoryPressureSource = source
     }
 
     // MARK: Sleep / wake

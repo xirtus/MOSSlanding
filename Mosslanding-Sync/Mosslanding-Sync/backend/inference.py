@@ -16,19 +16,35 @@ Stdout — status and result messages, one JSON object per line:
   {"status": "generating", "message": "Generating audio..."}
   {"status": "idle"}
   {"status": "error", "error": "..."}
-  {"wav_path": "/Users/.../mosslanding_xxxx.wav",
-   "filename": "mosslanding_xxxx.wav",
+  {"pcm_path": "/Users/.../Library/Application Support/MOSSlanding/pcm-tmp/moss_xxx.f32",
    "sample_rate": 22050,
-   "duration": 3.2}
+   "samples":     70560,
+   "duration":    3.2}
   {"error": "synthesis failed: ..."}
+
+The pcm_path file contains raw float32 little-endian samples (mono). Swift
+reads, WAV-encodes natively, places the WAV on the user's Desktop, and
+unlinks the temp file.
 
 Stdin — one request object per line:
 
-  {"op": "synthesize", "text": "...", "voice": "alice.wav", "mode": "clone",
-   "quality": 32, "temperature": 1.7, ...}
-  {"op": "load"}
-  {"op": "unload"}
-  {"op": "shutdown"}
+  Clone mode (Python still owns text + audio tokenization):
+    {"op": "synthesize", "text": "...", "voice": "alice.wav", "mode": "clone",
+     "quality": 32, "temperature": 1.7, ...}
+
+  Direct mode (Swift pre-tokenized via swift-transformers — sweep 6):
+    {"op": "synthesize",
+     "input_ids":      [t0, p, p, …, p, t1, p, p, …, p, …, audio_start, p, …, p],
+     "attention_mask": [1, 1, …, 1],
+     "mode": "direct", "quality": 16, ...}
+    `input_ids` is row-major flat (seq_len, 1 + n_vq); col 0 holds the text
+    token (or audio_start_token_id for the final row), cols 1..n_vq hold the
+    audio pad code. `attention_mask` is 1D length seq_len.
+
+  Control:
+    {"op": "load"}
+    {"op": "unload"}
+    {"op": "shutdown"}
 
 Synthesize results are emitted in request order (FIFO). The host correlates
 the next non-status response with the next outstanding request.
@@ -45,8 +61,9 @@ _APP_SUPPORT = Path.home() / "Library" / "Application Support" / "MOSSlanding"
 _MODELS_DIR  = _APP_SUPPORT / "models"
 _MODELS_HUB  = _MODELS_DIR / "hub"
 _VOICES_DIR  = _APP_SUPPORT / "voices"
-_OUTPUT_DIR  = Path.home() / "Desktop" / "MOSSlanding"
-for _d in (_MODELS_DIR, _MODELS_HUB, _VOICES_DIR, _OUTPUT_DIR):
+# PCM hand-off scratch dir. Swift consumes and unlinks these.
+_PCM_TMP_DIR = _APP_SUPPORT / "pcm-tmp"
+for _d in (_MODELS_DIR, _MODELS_HUB, _VOICES_DIR, _PCM_TMP_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 os.environ.setdefault("HF_HOME",                str(_MODELS_DIR))
@@ -75,8 +92,10 @@ import uuid
 from typing import Any, Optional
 
 # ── heavy imports (after env is set) ──────────────────────────────────────
+# Audio I/O for MOSS-TTS is `torchaudio`-only (verified by grep through the
+# trust_remote_code under hf cache). We write raw float32 PCM via numpy and
+# hand it to Swift, which encodes the WAV natively.
 import numpy as np
-import soundfile as sf
 import torch
 
 
@@ -252,6 +271,34 @@ def unload() -> None:
     _state.emit_status()
 
 
+# ── Direct-mode input_ids construction ─────────────────────────────────────
+def _build_direct_input_ids(
+    token_ids: list[int],
+    attention_mask: list[int],
+    processor: Any,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build model input_ids + attention_mask from pre-tokenized flat arrays.
+
+    `token_ids` is the row-major flattened (seq_len, 1 + n_vq) tensor from
+    Swift. `attention_mask` is a 1D list of 0/1.
+
+    Returns batched tensors ready for model.generate().
+    """
+    mc = processor.model_config
+    n_vq = getattr(mc, "n_vq", 8)
+    n_channels = 1 + n_vq
+    seq_len = len(token_ids) // n_channels
+
+    # Reshape from flat to (seq_len, n_channels)
+    input_ids_2d = torch.tensor(token_ids, dtype=torch.long, device=device).reshape(seq_len, n_channels)
+
+    # Add batch dimension: (1, seq_len, n_channels)
+    input_ids = input_ids_2d.unsqueeze(0)
+    attn = torch.tensor(attention_mask, dtype=torch.bool, device=device).unsqueeze(0)
+    return input_ids, attn
+
+
 # ── synthesis ───────────────────────────────────────────────────────────────
 def _synthesize(req: dict) -> dict:
     """Run synthesis for a request. Returns the response dict to emit."""
@@ -269,35 +316,44 @@ def _synthesize(req: dict) -> dict:
     model = _state.model
     device = _state.device
 
-    text = req.get("text", "")
-    if not text:
-        return {"error": "text is required"}
+    # ── Direct-mode path: Swift pre-tokenized ──────────────────────────
+    if "input_ids" in req:
+        token_ids = req["input_ids"]
+        attention_mask_raw = req.get("attention_mask", [1] * (len(token_ids) // (1 + getattr(processor.model_config, "n_vq", 8))))
+        input_ids, attention_mask = _build_direct_input_ids(
+            token_ids, attention_mask_raw, processor, device
+        )
+    else:
+        # ── Clone-mode path: Python tokenizes ──────────────────────────
+        text = req.get("text", "")
+        if not text:
+            return {"error": "text is required"}
 
-    voice = req.get("voice")
-    mode  = req.get("mode", "clone")
-    language = req.get("language")
-    duration_tokens = req.get("duration_tokens")
+        voice = req.get("voice")
+        mode  = req.get("mode", "clone")
+        language = req.get("language")
+        duration_tokens = req.get("duration_tokens")
 
-    reference_paths: list[str] = []
-    if voice and mode != "direct":
-        vp = _VOICES_DIR / voice
-        if vp.exists():
-            reference_paths = [str(vp)]
+        reference_paths: list[str] = []
+        if voice and mode != "direct":
+            vp = _VOICES_DIR / voice
+            if vp.exists():
+                reference_paths = [str(vp)]
 
-    msg_kwargs: dict[str, Any] = {}
-    if language and str(language).lower() not in ("auto", ""):
-        msg_kwargs["language"] = language
-    if reference_paths:
-        msg_kwargs["reference"] = reference_paths
-    if duration_tokens:
-        msg_kwargs["tokens"] = int(duration_tokens)
+        msg_kwargs: dict[str, Any] = {}
+        if language and str(language).lower() not in ("auto", ""):
+            msg_kwargs["language"] = language
+        if reference_paths:
+            msg_kwargs["reference"] = reference_paths
+        if duration_tokens:
+            msg_kwargs["tokens"] = int(duration_tokens)
+
+        conversation = [processor.build_user_message(text=text, **msg_kwargs)]
+        batch = processor([conversation], mode="generation")
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
 
     quality = max(4, min(32, int(req.get("quality", 32))))
-
-    conversation = [processor.build_user_message(text=text, **msg_kwargs)]
-    batch = processor([conversation], mode="generation")
-    input_ids = batch["input_ids"].to(device)
-    attention_mask = batch["attention_mask"].to(device)
 
     gen_kwargs = dict(
         input_ids=input_ids,
@@ -325,19 +381,20 @@ def _synthesize(req: dict) -> dict:
     if not msg.audio_codes_list:
         return {"error": "No audio codes in output"}
 
-    audio = msg.audio_codes_list[0].cpu().float().numpy()
+    audio = msg.audio_codes_list[0].cpu().float().numpy().astype(np.float32, copy=False)
     sr    = int(processor.model_config.sampling_rate)
 
-    out_name = f"mosslanding_{uuid.uuid4().hex[:8]}.wav"
-    out_path = _OUTPUT_DIR / out_name
-    sf.write(str(out_path), audio, sr, format="WAV", subtype="PCM_16")
-    duration = float(len(audio)) / sr
+    # Hand the raw float32 PCM off to Swift through a temp file. Swift owns
+    # WAV encoding and Desktop placement.
+    pcm_name = f"moss_{uuid.uuid4().hex[:8]}.f32"
+    pcm_path = _PCM_TMP_DIR / pcm_name
+    audio.tofile(str(pcm_path))
 
     return {
-        "wav_path":    str(out_path),
-        "filename":    out_name,
+        "pcm_path":    str(pcm_path),
         "sample_rate": sr,
-        "duration":    duration,
+        "samples":     int(audio.size),
+        "duration":    float(audio.size) / sr,
     }
 
 
